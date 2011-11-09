@@ -1,0 +1,266 @@
+#!/bin/bash -
+
+##############################################################################
+# listconv.sh (c) ABuerki 2009-2011, licensed under the EUPL V.1.1.
+####
+# DESCRRIPTION: converts the format of n-gram lists between those of NGramTools, 
+#				the N-Gram Statistics Package (NSP) and the format for 
+#				substrd.sh
+#				The original list has the affix .bkup added to its name and
+#				a new list is produced in the desired format (by default this
+#				is the input format for substrd.sh: 'n<>gram<>	0	0' (tab
+#				delimited).
+#
+# SYNOPSIS: listconv.sh [OPTIONS] FILE(S)
+#
+# OPTIONS:	-h	help
+#			-v 	verbose
+#			-t  output list in NGramTools format (i.e. 'n gram 0')
+##############################################################################
+# 
+# input formats: (automatically recognised)
+################
+#
+# 	1	'n<>gram<>1 1 1 ' (output of count.pl of the NSP)
+#		(i.e. n-gram of any size, with frequency count immediately following
+#		then various figures for stats calculation (space delimited) with a 
+#		final trailing space on each line)
+#
+#	2	'n<>gram<>154091 4.4659 2 1 1' (output of statistics.pl)
+#		(i.e. n-gram of any size, with rank, statistics-score, frequency  
+#		[possibly document frequency or other numbers], space-delimited)
+#		a variant of this format is 'n<>gram<> 154091 4.4659 2 1'
+#
+#	3	'n gram 6' (output of text2ngram)
+#		(i.e. n-gram of any size followed by its frequency all space delimited)
+#
+#	4	'n<>gram<> 370'
+#		(i.e. n-gram of any size, with tab delimited frequency count, w/o
+#		trailing space)
+#
+#	5	'n<>gram<>	370	258'
+# 		(i.e. n-gram of any size, tab delimited without trailing space,
+#		first number is freq., second doc count)
+#
+#	6	'n<>gram<>	370	258	T|F'
+# 		(i.e. n-gram of any size, tab delimited without trailing space,
+#		first number is freq., second doc count, then TP/TP designation)
+#
+#	7	'n<>gram<>	1	1128.4296	21'
+#		(i.e. as immediately below, but without document count)
+#
+#	8	'n<>gram<>	1	1128.4296	21	1'
+#		(i.e. n-gram of any size, tab or space delimited rank, association 
+#		measure frequency and document frequency, without trailing space)
+#
+# output formats:
+#################
+#
+#	default:	'n<>gram<> 370	320'
+#				(i.e. tab n-gram TAB frequency doc frequency)
+#				if no second number is present in the source list, a 0 will be
+#				inserted in second place in the output list
+#
+#	-t option	'n gram 6'
+#				(i.e. the NGramTools format)
+#
+#
+
+
+### defining functions
+
+# define help function
+help ( ) {
+	echo "
+Usage:    $(basename $0) [OPTIONS] FILE(S)
+Options:  -v verbose
+          -h help
+          -t  output list in NGramTools format (i.e. 'n gram 0')
+note:	  the script automatically recognises the format of the input list
+          and converts to the respective other format, by default the format
+          'n<>gram<>	0	0'"
+}
+
+# define getch function
+getch ( ) {
+	OLD_STTY=$(stty -g)
+	stty cbreak -echo
+	GETCH=$(dd if=/dev/tty bs=1 count=1 2>/dev/null)
+	stty $OLD_STTY 
+}
+
+# define exists function (checks if target files exists)
+exists ( ) {
+if [ -a $1 ] ; then
+	echo "$1 exists. overwrite? (y/n/exit)" >&2
+	getch
+	if [ $GETCH == y ] ; then
+		rm $1
+	elif [ $GETCH == n ] ; then
+		mv $1 $1.bkup
+		echo "appended .bkup to original list" >&2
+	else
+		echo "exited without changing anything" >&2
+		exit 0
+	fi
+fi
+}
+
+### end define functions
+
+# analyse options
+while getopts hvt opt
+do
+	case $opt	in
+	h)	help
+		exit 0
+		;;
+	v)	verbose=true
+		;;
+	t)	t2n=true
+		;;
+	esac
+done
+
+shift $((OPTIND -1))
+
+# initialise variables
+missing=0
+
+### check if arguments were given and exist
+if [ "$#" -lt "1" ]; then
+	echo "ERROR: no argument lists provided" >&2
+	exit 1
+fi
+for arg in $@
+do
+	if [ -a $arg ]; then
+		:
+	else
+		echo "ERROR: $arg could not be found" >&2
+		(( missing += 1 ))
+	fi
+done
+if [ "$missing" -gt "0" ]; then
+	exit 1
+fi
+
+
+
+
+for list in $@
+	do
+	
+	#### if NSP-based format: (i.e. there are at least two '<>') ####
+	if [ -n "$(grep -m1 '<>.*<>' $list)" ]; then
+	
+		# if it is tab delimited
+		if [ -n "$(grep -m1 '	' $list)" ]; then
+			# if conversion to t2n format
+			if [ "$t2n" == "true" ]; then
+				# check if $list.bkup exists
+				exists $list.bkup
+				# append .bkup to original list
+				cp $list $list.bkup
+				
+				# if stats format (format 7 or 8),
+				# i.e. there is a full-stop with numbers either side
+				if [ -n "$(egrep -m1 '[0-9]\.[0-9]' $list)" ]; then
+					stats_list=true
+					echo "this conversion is not yet implemented." >&2
+					exit 0
+				fi
+				
+				# remove any lines with only numbers
+				sed '/^[0-9]*$/d' < $list.bkup > $list
+				# cut off any further numbers after the first
+				cut -f 1,2 < $list > $list.
+				# replace <> and tabs with spaces
+				sed -e 's/<>/ /g' -e 's/	//g' < $list. > $list
+				rm $list.
+				
+			# if formats 4,5 or 6:
+			else
+				echo "$list already appears to be in the requested format: $(head -1 $list)" >&2
+				exit 0
+			fi
+			
+		# if space-delimited (actually, if it is NOT tab delimited)
+		else
+			# check if $list.bkup exists
+			exists $list.bkup
+			# append .bkup to original list
+			cp $list $list.bkup
+			
+			# if conversion to t2n format
+			if [ "$t2n" == "true" ]; then
+			
+				# if stats format (format 2)
+				# i.e. there is a full-stop with numbers either side
+				if [ -n "$(egrep -m1 '[0-9]\.[0-9]' $list)" ]; then
+					# if there is a space after the n-gram (variant of format 2)
+					if [ -n "$(egrep -m1 '<> ' $list)" ]; then
+						echo "conversion of the following format is not yet implemented: $(head -1 $list)" >&2
+					fi
+					# extract n-gram and frequency information
+					sed 's/<>[0-9]* [0-9]*\.[0-9]* \([0-9]*\) [0-9]*.*$/<>\1/g' < $list > $list.
+					
+				# if not stats format (format 1)
+				else
+					# cut off after the first space
+					cut -d ' ' -f 1 < $list > $list.
+				fi
+				
+				# replace <> with space and
+				# remove any lines with only numbers and
+				sed -e 's/<>/ /g' -e '/^[0-9]*$/d' < $list. > $list
+				rm $list.
+				
+			# if conversion to format for substring reduction
+			else
+				# if stats format (format 2)
+				# i.e. there is a full-stop with numbers either side
+				if [ -n "$(egrep -m1 '[0-9]\.[0-9]' $list)" ]; then
+					# if there is a space after the n-gram (variant of format 2)
+					if [ -n "$(egrep -m1 '<> ' $list)" ]; then
+						echo "conversion of the following format is not yet implemented: $(head -1 $list)"
+					fi
+					# extract n-gram and frequency information
+					sed 's/<>[0-9]* [0-9]*\.[0-9]* \([0-9]*\) [0-9]*.*$/<>	\1/g' < $list > $list.
+					
+				# if not stats format (format 1)
+				else
+					# cut off after the first space
+					cut -d ' ' -f 1 < $list > $list.
+				fi
+				
+				# remove any lines with only numbers,
+				# insert tab before final number, add 0 doc count
+				sed -e '/^[0-9]*$/d' -e 's/>\([0-9]*$\)/>	\1/g' -e 's/$/	0/g'  < $list. > $list
+				rm $list.
+			fi
+		fi
+		
+	#### if t2n formatted: ####
+	elif [ -n "$(egrep -m1 ' [0-9]*$' $list)" ]; then
+		# we assume it is t2n formatted if it ends in a digit (or several)
+		# preceeded by a space
+		if [ "$t2n" == "true" ]; then
+			echo "$list is already in the requested t2n format" >&2
+			exit 0
+		fi
+		# check if $list.bkup exists
+		exists $list.bkup
+		# append .bkup to original list
+		cp $list $list.bkup
+		# now we check what n the n-gram is
+		# N=$(head -1 $list | awk -v RS=" " 'END {print NR - 1}')
+		# now we re-format the list
+		sed -e 's/ \([0-9]*\)$/ 	\1/g' -e 's/ /<>/g' < $list.bkup > $list
+		
+	# if not in a known format:
+	else
+		echo "$list is in an unrecognised format" >&2
+		exit 1
+	fi
+	done
