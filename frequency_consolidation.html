@@ -1,0 +1,178 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+
+
+
+  <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type"><title>frequency consolidation</title></head><body>
+
+<h1 style="text-align: left; margin-left: 40px;"><img style="width: 207px; height: 206px;" alt="SubString" src="SubStringsmall.png"><span style="font-family: monospace;"><span style="font-weight: bold;"></span></span></h1>
+
+<h1 style="text-align: left; margin-left: 40px;"><span style="font-family: monospace;"><span style="font-weight: bold;">What is frequency consolidation?</span></span></h1>
+
+<div style="text-align: left; margin-left: 40px;"><span style="font-family: monospace;">
+</span><br>
+
+<span style="font-family: monospace;"></span></div>
+
+<div style="margin-left: 40px;"><span style="font-family: monospace;">
+To illustrate how SubString handles frequency consolidation among <br>
+different length n-grams</span><span style="font-family: monospace;">, let us assume we have as input the n-grams<br>
+in (1)a. These will</span><span style="font-family: monospace;"> have been extracted from a corpus and their<br>
+frequency of occurrence in</span><span style="font-family: monospace;"> the corpus is indicated by the number<br>
+following each n-gram.</span><br>
+
+<span style="font-family: monospace;">
+</span><br>
+
+<span style="font-family: monospace;">
+The 4-gram 'have a lovely time' occurs with a frequency of 15. The</span><br>
+
+<span style="font-family: monospace;">
+trigrams 'have a lovely' and 'a lovely time' occur 58 and 44 times</span><br>
+
+<span style="font-family: monospace;">
+respectively. 15 of those occurrences are, however, occurrences as part</span><br>
+
+<span style="font-family: monospace;">
+of the superstring 'have a lovely time' (since they are substrings of</span><br>
+
+<span style="font-family: monospace;">
+'have a lovely time'). To get the consolidated frequency of occurrence</span><br>
+
+<span style="font-family: monospace;">
+for 'have a lovely' and 'a lovely time' (i.e. the occurrences of these</span><br>
+
+<span style="font-family: monospace;">
+trigrams on their own, NOT counting when they occur in a longer string),</span><br>
+
+<span style="font-family: monospace;">
+we therefore deduct the frequency of their superstring (15) from their</span><br>
+
+<span style="font-family: monospace;">
+own frequency. This results a consolidated frequency of 43 for 'have a</span><br>
+
+<span style="font-family: monospace;">
+lovely' (i.e. 58 minus 15) and 29 for 'a lovely time' (i.e. 44 minus</span><br>
+
+<span style="font-family: monospace;">
+15), as shown in (1)b.</span><br>
+
+<span style="font-family: monospace;">
+</span><br>
+
+<span style="font-family: monospace;">
+The remaining bigrams ('have a', 'a lovely' and 'lovely time') are also</span><br>
+
+<span style="font-family: monospace;">
+substrings of 'have a lovely time' and therefore also need to have their</span><br>
+
+<span style="font-family: monospace;">
+frequency reduced by 15 (resulting in a frequency of 34692 for 'have a',</span><br>
+
+<span style="font-family: monospace;">
+86 for 'a lovely' and 30 for 'lovely time'. In addition, 'have a' and 'a</span><br>
+
+<span style="font-family: monospace;">
+lovely' are substrings of 'have a lovely' and therefore the frequency of</span><br>
+
+<span style="font-family: monospace;">
+'have a lovely' which is now 43, needs to be deducted from their</span><br>
+
+<span style="font-family: monospace;">
+frequencies. This results in a new frequency of 34649 for 'have a' and</span><br>
+
+<span style="font-family: monospace;">
+43 for 'a lovely'. 'a lovely' and 'lovely time' are furthermore</span><br>
+
+<span style="font-family: monospace;">
+substrings of 'a lovely time' and consequently need to have their</span><br>
+
+<span style="font-family: monospace;">
+frequencies reduced by that of 'a lovely time' (i.e. by 29): the</span><br>
+
+<span style="font-family: monospace;">
+consolidated frequency of 'a lovely' is now 14, that of 'lovely time' is</span><br>
+
+<span style="font-family: monospace;">
+1. The output of the frequency consolidation is shown in (1)b.</span><br>
+
+<span style="font-family: monospace;">
+</span><br>
+
+<span style="font-family: monospace;">
+(1) a&nbsp; &nbsp;have a lovely
+time&nbsp;&nbsp;&nbsp;15&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+b&nbsp;&nbsp;&nbsp; have a lovely
+time&nbsp;&nbsp;&nbsp; 15</span><br>
+
+<span style="font-family: monospace;">
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; have a
+lovely&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+58&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;have a
+lovely&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;43</span><br>
+
+<span style="font-family: monospace;">
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; a lovely
+time&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+44&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;a lovely
+time&nbsp;&nbsp;&nbsp; &nbsp; &nbsp;&nbsp; 29</span><br>
+
+<span style="font-family: monospace;">
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; have
+a&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; 34707&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;have
+a&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &nbsp;34649</span><br>
+
+<span style="font-family: monospace;">
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; a
+lovely&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp; &nbsp;101&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;a
+lovely&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp; &nbsp; &nbsp; 14</span><br>
+
+<span style="font-family: monospace;">
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; lovely
+time&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;45&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp;lovely
+time&nbsp;&nbsp;&nbsp;
+&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; &nbsp;1</span><br>
+
+<span style="font-family: monospace;">
+</span><br>
+
+<span style="font-family: monospace;">
+A more in-depth theoretical description and justification of the</span><br>
+
+<span style="font-family: monospace;">
+algorithm employed by SubString is currently in preparation.</span><br>
+
+<span style="font-family: monospace;"></span><br>
+
+<span style="font-family: monospace;">
+</span><br>
+
+<div style="text-align: center;">
+<div style="text-align: left;"><span style="font-family: monospace;"><a href="index.html">back</a> | <a href="https://github.com/andy740/SubString/downloads">download
+SubString</a> | <a href="http://www.users.waitrose.com/%7Eyoujin/index.html" target="_blank">about the author</a></span><br>
+</div>
+<span style="font-family: monospace;"></span></div>
+<span style="font-family: monospace;">
+
+<br>
+
+</span><span style="font-family: monospace;"></span><img style="width: 508px; height: 32px;" alt="----------------------------------------------------------" src="bar.png"><br>
+
+<span style="font-family: monospace;"></span><br>
+
+<span style="font-family: monospace;">last update:
+2011-05-01</span></div>
+
+
+</body></html>
