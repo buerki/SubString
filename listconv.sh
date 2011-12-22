@@ -2,10 +2,12 @@
 
 ##############################################################################
 # listconv.sh (c) ABuerki 2009-2011, licensed under the EUPL V.1.1.
+version="0.8"
 ####
-# DESCRRIPTION: converts the format of n-gram lists between those of NGramTools, 
-#				the N-Gram Statistics Package (NSP) and the format for 
-#				substrd.sh
+# DESCRRIPTION: converts the format of n-gram lists between those of NGramTools
+#				(found at http://homepages.inf.ed.ac.uk/lzhang10/ngram.html),
+#				the N-Gram Statistics Package (found at http://
+#				ngram.sourceforge.net) and the format for substrd.sh.
 #				The original list has the affix .bkup added to its name and
 #				a new list is produced in the desired format (by default this
 #				is the input format for substrd.sh: 'n<>gram<>	0	0' (tab
@@ -26,7 +28,7 @@
 #		then various figures for stats calculation (space delimited) with a 
 #		final trailing space on each line)
 #
-#	2	'n<>gram<>154091 4.4659 2 1 1' (output of statistics.pl)
+#	2	'n<>gram<>154091 4.4659 2 1 1' (output of statistics.pl of NSP)
 #		(i.e. n-gram of any size, with rank, statistics-score, frequency  
 #		[possibly document frequency or other numbers], space-delimited)
 #		a variant of this format is 'n<>gram<> 154091 4.4659 2 1'
@@ -77,8 +79,7 @@ Options:  -v verbose
           -h help
           -t  output list in NGramTools format (i.e. 'n gram 0')
 note:	  the script automatically recognises the format of the input list
-          and converts to the respective other format, by default the format
-          'n<>gram<>	0	0'"
+          and converts to the format 'n<>gram<>	0	0'"
 }
 
 # define getch function
@@ -89,6 +90,30 @@ getch ( ) {
 	stty $OLD_STTY 
 }
 
+# define add_to_name function
+add_to_name ( ) {
+#####
+# this function checks if a file name (given as argument) exists and
+# if so appends a number at the end of the name so as to avoid overwriting 
+# existing files of the name as in the argument or any with the same name as the 
+# argument plus an incremented number count appended.
+####
+
+count=
+if [ -a $1 ]; then
+	add=-
+	count=1
+	while [ -a $1-$count ]
+		do
+		(( count += 1 ))
+		done
+else
+	count=
+	add=
+fi
+output_filename=$(echo "$1$add$count")
+}
+
 # define exists function (checks if target files exists)
 exists ( ) {
 if [ -a $1 ] ; then
@@ -97,8 +122,9 @@ if [ -a $1 ] ; then
 	if [ $GETCH == y ] ; then
 		rm $1
 	elif [ $GETCH == n ] ; then
-		mv $1 $1.bkup
-		echo "appended .bkup to original list" >&2
+		add_to_name $1.bkup
+		mv $1 $output_filename
+		echo "named original list $output_filename" >&2
 	else
 		echo "exited without changing anything" >&2
 		exit 0
@@ -118,6 +144,11 @@ do
 	v)	verbose=true
 		;;
 	t)	t2n=true
+		;;
+	V)	echo "$(basename $0)	-	version $version"
+		echo "Copyright (c) 2010-2011 Andreas Buerki"
+		echo "licensed under the EUPL V.1.1"
+		exit 0
 		;;
 	esac
 done

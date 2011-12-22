@@ -2,6 +2,7 @@
 
 ##############################################################################
 # cutoff.sh (c) Andreas Buerki 2009-2011, licensed under the EUPL V.1.1.
+version="0.8"
 ####
 # DESCRRIPTION: enforces frequency cutoffs in n-gram lists
 # SYNOPSIS: cutoff.sh [-f 'regex'][-d 'regex'] [-a 'regex'] FILE(S)
@@ -19,7 +20,7 @@
 #				i.e. if AM score [0-5] is entered, 0.0000 to 5.9999 is cut)
 #
 # NOTES:
-# input files must contain data in either of these formats:
+# input files must contain data in one of these formats:
 #
 # 	1	'n<>gram<> 370'
 #		(i.e. n-gram of any size, with tab delimited frequency count, w/o
@@ -38,7 +39,7 @@
 #
 #	5	'n<>gram<>	1	1128.4296	21	1'
 #		(i.e. n-gram of any size, tab or space delimited rank, association 
-#		measure frequency and document frequency, without trailing space)
+#		measure, frequency and document frequency, without trailing space)
 #
 # The script detects these formats automatically and deals with
 # each accoringly.
@@ -57,7 +58,7 @@
 # 04/02/2011	added -v option, fixed recognition of rank stat freq lists
 # 10/02/2011	fixed -a option
 # 30/04/2011	errors channelled to strderr
-# 
+# 22/12/2011	added -V option
 #
 
 # define functions
@@ -76,7 +77,7 @@ use -h for help
 }
 
 # analyse options
-while getopts ha:f:d:v opt
+while getopts ha:f:d:vV opt
 do
 	case $opt	in
 	h)	help
@@ -92,6 +93,11 @@ do
 		d=given
 		;;
 	v)	verbose=true
+		;;
+	V)	echo "$(basename $0)	-	version $version"
+		echo "Copyright (c) 2010-2011 Andreas Buerki"
+		echo "licensed under the EUPL V.1.1"
+		exit 0
 		;;
 	esac
 done
