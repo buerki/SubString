@@ -2,7 +2,7 @@
 
 ##############################################################################
 # substring.sh (c) Andreas Buerki 2011, licensed under the EUPL V.1.1.
-version="0.8.1"
+version="0.8.2"
 ####
 # DESCRRIPTION: performs frequency consolidation among different length n-grams
 #				for options see -h

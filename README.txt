@@ -1,4 +1,4 @@
-SubString v0.8.1 (http://andy740.github.com/SubString/)
+SubString v0.8.2 (http://andy740.github.com/SubString/)
 =======================================================
 
 The SubString package is a set of Unix Shell scripts used to consolidate frequencies of word n-grams of different length. In the process, the frequencies of substrings are reduced by the frequencies of their superstrings and a consolidated list with n-grams of different length is produced without an inflation of the overall word count. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word sequences and other phraseological phenomena.
@@ -182,12 +182,12 @@ none at this time
 F. Warning
 ----------
 
-SubString 0.8.1 is at beta stage. It is recommended that data to be processed are backed up before the software is used.
+SubString 0.8.2 is at beta stage. It is recommended that data to be processed are backed up before the software is used.
 
 
 G. Copyright, licensing, download
 ---------------------------------
 
-SubString 0.8.1 is (c) 2010-2011 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public License) as open source software.
+SubString 0.8.2 is (c) 2010-2011 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public License) as open source software.
 
 The project resides at http://andy740.github.com/SubString/ and new versions will be posted there. Suggestions and feedback are welcome. To be notified of new releases, go to https://github.com/andy740/SubString, click on the 'Watch' button and sign in.

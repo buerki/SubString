@@ -1,9 +1,0 @@
-release notes v. 0.8
-********************
-
-The functionality of substrd.sh, core_substring.sh and prep_stage.sh has been integrated into a new script: substring.sh. Additionally, the entire code was looked over and re-written in many places. Specifically,
-- processing now takes place in a secure temporary directory, thus minimising the danger of interference
-- the passing of arguments was simplified, now all arguments must be passed overtly (version 0.7's automatic mode was removed).
-- the number of negative frequencies is reduced in some cases by allowing the use of unfiltered lists of size n+1 when the largest filtered list containing n-grams is of size n.
-- minor adjustments to the help functions of all scripts
-- new examples and updated documentation in README.txt

@@ -1,6 +1,12 @@
+release notes v. 0.8.2
+**********************
+- adjusted test_data
+- substring.sh: adjusted mktemp call to work with both GNU (coreutils) 7.4 and the BSD version included in MacOS
+
+
+
 release notes v. 0.8.1
 **********************
-
 
 substring.sh
 ------------

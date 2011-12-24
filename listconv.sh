@@ -2,7 +2,7 @@
 
 ##############################################################################
 # listconv.sh (c) ABuerki 2009-2011, licensed under the EUPL V.1.1.
-version="0.8.1"
+version="0.8.2"
 ####
 # DESCRRIPTION: converts the format of n-gram lists between those of NGramTools
 #				(found at http://homepages.inf.ed.ac.uk/lzhang10/ngram.html),
