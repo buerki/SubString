@@ -1,5 +1,5 @@
-SubString v0.8 (http://andy740.github.com/SubString/)
-=====================================================
+SubString v0.8.1 (http://andy740.github.com/SubString/)
+=======================================================
 
 The SubString package is a set of Unix Shell scripts used to consolidate frequencies of word n-grams of different length. In the process, the frequencies of substrings are reduced by the frequencies of their superstrings and a consolidated list with n-grams of different length is produced without an inflation of the overall word count. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word sequences and other phraseological phenomena.
 
@@ -43,7 +43,7 @@ EUPL.pdf         a copy of the European Union Public License under which SubStri
 C. Installation
 ---------------
 
-SubString was tested on MacOS X (version 10.6) and Ubuntu Linux (version Xubuntu 9.04), but should run on all platforms that can run a bash script.
+SubString was tested on MacOS X (v. 10.6 and 10.7) and Ubuntu Linux (versions Xubuntu 9.04 and 10.04), but should run on all platforms that can run a bash script.
 
 Generally, all scripts (i.e. the files ending in .sh) should be placed in a location that is in the user's $PATH variable (or the location should be added to the $PATH variable) so they can be called from the command line. A good place to put the scripts might be /usr/bin.
 
@@ -91,11 +91,7 @@ be converted as arguments:
 
 	listconv.sh FILE+
 
-Where FILE+ is the name of one or more lists to be converted (if the list
-is not in the current working directory, the path needs to be indicated
-as well, i.e. /path/to/directory/list.lst). listconv.sh will convert the
-lists and create a backup of the original unconverted lists with the
-suffix .bkup in the same directory. More information on listconv.sh is available from the help function of listconv.sh which is called by typing listconv.sh -h
+Where FILE+ is the name of one or more lists to be converted (if the list is not in the current working directory, the path needs to be indicated as well, i.e. /path/to/directory/list.lst). listconv.sh will convert the lists and create a backup of the original unconverted lists with the suffix .bkup in the same directory. More information on listconv.sh is available from the help function of listconv.sh which is called by typing listconv.sh -h
 
 
 
@@ -120,15 +116,9 @@ FILE+ again stands for one or more n-gram lists that should be frequency-filtere
 
 SUBSTRING.SH
 
-substring.sh is the script that manages the frequency consolidation.
-Before detailing its operation, it is useful to highlight three areas of
-detail on how substring.sh handles frequency consolidation.
+substring.sh is the script that manages the frequency consolidation. Before detailing its operation, it is useful to highlight three areas of detail on how substring.sh handles frequency consolidation.
 
-Firstly, n-gram lists extracted from a source document usually need
-to be filtered to be useful. Various filters are employed for this
-purpose including the use of minimal frequencies of occurrence or
-threshold values of statistical association measures. substring.sh accepts lists
-that have already been filtered in one way or another. For frequency filtering, the script cutoff.sh, which is included in the SubString package, can be used as explained above.
+Firstly, n-gram lists extracted from a source document usually need to be filtered to be useful. Various filters are employed for this purpose including the use of minimal frequencies of occurrence or threshold values of statistical association measures. substring.sh accepts lists that have already been filtered in one way or another. For frequency filtering, the script cutoff.sh, which is included in the SubString package, can be used as explained above.
 
 Secondly, regardless of the type of filter applied, frequency consolidation with substrd.sh can be performed more accurately if the script has access to the unfiltered (or less severely filtered) n-gram lists as well as the filtered lists given as input. This applies to cases where n-gram lists of length n=5 and above are involved. substring.sh therefore includes an optional preparatory stage which looks up certain n-grams in unfiltered lists prior to frequency consolidation in order to resolve overlaps between n-grams. The script can also be run without this preparatory stage.
 
@@ -139,7 +129,9 @@ Thirdly, n-gram lists to be consolidated by substring.sh need to conform to the 
 3) it is strongly recommended that n-gram lists do not contain
    n-grams across sentence boundaries
 4) input lists must be of the format n<>gram<>	0[	0]
-   that is, the words of the n-grams are separated by '<>' then a tab follows, then the frequency count. Optionally, a tab and possibly some other numbers follow, like document counts or measures of association strength. To convert lists into this format use listconv.sh as described below.
+   that is, the words of the n-grams are separated by '<>' then a tab follows, then the FREQUENCY COUNT. Optionally, a tab and possibly some more information may follow. This additional information could be document counts or measures of association strength. It is important to note that only the first number after the n-gram (i.e. the frequency) is consolidated. All following information is merely copied from the source lists to the output lists.
+
+To convert lists into the required input format use listconv.sh as described above.
 
 
 To consolidate n-gram lists, substring.sh is called like this:
@@ -184,19 +176,18 @@ Running substring.sh on the data in the 'example3' directory of the test_data fo
 E. Known Issues
 ---------------
 
-While substring.sh is able to deal with one empty list being given as an argument (as in the above example of 7-grams.cut.\(\[0-9\]\)), if two empty lists are passed as arguments, the script gets confused and freezes. An update to address this issue is being prepared.
+none at this time
 
 
 F. Warning
 ----------
 
-SubString 0.8 is at beta stage. It is recommended that data to be processed are backed up before the software is used.
+SubString 0.8.1 is at beta stage. It is recommended that data to be processed are backed up before the software is used.
 
 
 G. Copyright, licensing, download
 ---------------------------------
 
-SubString 0.8 is (c) 2010-2011 Andreas Buerki, licensed under the EUPL
-V.1.1. (the European Union Public License) as open source software.
+SubString 0.8.1 is (c) 2010-2011 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public License) as open source software.
 
-The project resides at http://andy740.github.com/SubString/ and new versions will be posted there. Suggestions and feedback are welcome.
+The project resides at http://andy740.github.com/SubString/ and new versions will be posted there. Suggestions and feedback are welcome. To be notified of new releases, go to https://github.com/andy740/SubString, click on the 'Watch' button and sign in.

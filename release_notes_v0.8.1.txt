@@ -1,0 +1,25 @@
+release notes v. 0.8.1
+**********************
+
+
+substring.sh
+------------
+- filtered and unfiltered input lists are now tested to make sure they contain consecutive n-sizes.
+- the script now tests if unfiltered lists are supplied that contain n-grams that are larger than the maximum n-size of filtered lists +1 and complains if that is the case
+- document counts and other digits AFTER the frequency are now retained in the output lists (they are simply copied over from the source lists untouched)
+
+listconv.sh
+-----------
+adjusted NOT to place an empty document count digit (i.e.) at the end of each line when no real document count is present in the source list.
+
+
+
+release notes v. 0.8
+********************
+
+The functionality of substrd.sh, core_substring.sh and prep_stage.sh has been integrated into a new script: substring.sh. Additionally, the entire code was looked over and re-written in many places. Specifically,
+- processing now takes place in a secure temporary directory, thus minimising the danger of interference
+- the passing of arguments was simplified, now all arguments must be passed overtly (version 0.7's automatic mode was removed).
+- the number of negative frequencies is reduced in some cases by allowing the use of unfiltered lists of size n+1 when the largest filtered list containing n-grams is of size n.
+- minor adjustments to the help functions of all scripts
+- new examples and updated documentation in README.txt

@@ -2,7 +2,7 @@
 
 ##############################################################################
 # substring.sh (c) Andreas Buerki 2011, licensed under the EUPL V.1.1.
-version="0.8"
+version="0.8.1"
 ####
 # DESCRRIPTION: performs frequency consolidation among different length n-grams
 #				for options see -h
@@ -14,7 +14,10 @@ version="0.8"
 #				now uses temporary directory to process lists
 #				Automatic mode removed, options revised, integrated functionality of
 #				core_substring.sh and prep_stage.sh
-#
+# 23 Dec 2011	added test for consecutive n of n-gram lists
+#				consolidated list now retains document counts and/or other numbers
+#				that follow the n-gram frequency, adjusted mktemp command not throw
+#				errors under the Xubuntu version
 
 
 
@@ -236,6 +239,7 @@ fi
 
 # remove no_superstring.lst and transfer.lst not to interfere wit next iteration
 rm $SCRATCHDIR/no_superstring.lst 2> /dev/null
+#mv rm $SCRATCHDIR/transfer.lst $HOME/Desktop
 rm $SCRATCHDIR/transfer.lst 2> /dev/null
 }
 
@@ -254,12 +258,14 @@ fi
 
 # look at things line by line
 # spaces in the lines need to be got rid of
-# so an underscore is inserted between n-gram and frequency count
-# the document count is cut out
-for line in $(sed 's/<>	\([0-9]*\).*/<>_\1/g' < "$1")
+# so an underscore is inserted between n-gram, frequency count
+# and document count or other remaining numbers
+for line in $(sed 's/	/_/g' < "$1")
 	do
 			# create variable with line frequency of line in argument 1
 			freq1=$(echo $line | cut -d "_" -f 2)
+			# create variable with any remaining numbers such as document count
+			remaining_numbers=$(echo $line | cut -d "_" -f 3-10 | sed -e 's/_/ /g' -e 's/^/ /g')
 
 			# search the second argument for corresponding lines and put
 			# their frequency in variable line2freq
@@ -299,7 +305,7 @@ for line in $(sed 's/<>	\([0-9]*\).*/<>_\1/g' < "$1")
 
 			if [ $newfreq -lt 0 ]; then
 				# echo "Caution: negative frequencies"
-				echo $searchline	$newfreq >> $neg_freq_list_name
+				echo $searchline	$newfreq$remaining_numbers >> $neg_freq_list_name
 				((neg_freq_counter +=1))
 			fi
 			
@@ -312,10 +318,10 @@ for line in $(sed 's/<>	\([0-9]*\).*/<>_\1/g' < "$1")
 			touch "$1".tmp
 			
 			if [ "$show_minus_zero_freq" == "true" ] ; then
-				echo $searchline	$newfreq >> "$1".tmp
+				echo $searchline	$newfreq$remaining_numbers >> "$1".tmp
 			else
 				if [ $newfreq -gt 0 ]; then
-					echo $searchline	$newfreq >> "$1".tmp
+					echo $searchline	$newfreq$remaining_numbers >> "$1".tmp
 				fi
 			fi
 			
@@ -347,16 +353,16 @@ do
 		;;
 	o)	special_outdir=$OPTARG
 		;;
-	u)	(( iteration += 1 ))
-		if [ $iteration -eq 1 ]; then
+	u)	(( number_of_uncut_lists += 1 ))
+		if [ $number_of_uncut_lists -eq 1 ]; then
 			uncut1=$OPTARG
-		elif [ $iteration -eq 2 ]; then
+		elif [ $number_of_uncut_lists -eq 2 ]; then
 			uncut2=$OPTARG
-		elif [ $iteration -eq 3 ]; then
+		elif [ $number_of_uncut_lists -eq 3 ]; then
 			uncut3=$OPTARG
-		elif [ $iteration -eq 4 ]; then
+		elif [ $number_of_uncut_lists -eq 4 ]; then
 			uncut4=$OPTARG
-		elif [ $iteration -eq 5 ]; then
+		elif [ $number_of_uncut_lists -eq 5 ]; then
 			uncut5=$OPTARG
 		else
 			echo "no more than 5 uncut lists allowed" >&2
@@ -376,7 +382,7 @@ done
 shift $((OPTIND -1))
 
 # create scratch directory where temp files can be moved about
-SCRATCHDIR=$(mktemp -dt substring)
+SCRATCHDIR=$(mktemp -dt substringXXX)
 # if mktemp fails, use a different method to create the scratchdir
 if [ "$SCRATCHDIR" == "" ] ; then
 	mkdir ${TMPDIR-/tmp/}substring.$$
@@ -391,9 +397,44 @@ if [ -z "$(echo $uncut1)" ]; then
 	if [ "$verbose" == "true" ]; then
 		echo "running without preparatory stage"
 	fi
-	# if uncut list provided, check if (first) uncut list exists
-elif [ -a $uncut1 ]; then
-	# if so, establish n-size of first uncut list 
+	# if uncut list provided, check if (first) uncut list exists and is greater than 0
+elif [ -s $uncut1 ]; then
+	# check n of uncut lists
+	if [ "$verbose" == "true" ]; then
+		echo "checking n of uncut lists"
+	fi
+	i="$number_of_uncut_lists"
+	while [ $i -gt 0 ]; do
+		if [ -s $(eval echo \$uncut$i) ]; then
+			eval nsize_u$i=$(head -1 $(eval echo \$uncut$i) | awk -v RS="<>" 'END {print NR - 1}')
+			if [ "$verbose" == "true" ]; then
+				echo -n "$(eval echo \$nsize_u$i) "
+			fi
+		else
+			echo "$(eval echo \$uncut$i) not found or empty" >&2
+			exit 1
+		fi
+		(( i -= 1 ))
+	done
+
+	# check if uncut lists are consecutive with regard to n-size
+	i="$number_of_uncut_lists"
+	im1=$(expr $number_of_uncut_lists - 1 )
+	while [ $im1 -gt 0 ]; do
+		if [ $(eval echo \$nsize_u$i) -eq $(expr $(eval echo \$nsize_u$im1) + 1) ]; then
+			(( i -= 1 ))
+			(( im1 -= 1 ))
+		else
+			echo " " >&2
+			echo "Error: uncut lists do not appear to have consecutive n-gram lengths." >&2
+			exit 1
+		fi
+	done
+	if [ "$verbose" == "true" ]; then
+		echo "... test passed"
+	fi
+	
+	# establish n-size of first uncut list 
 	# and report error if unsuitable
 	uncutnsize=$(head -1 $uncut1 | awk -v RS="<>" 'END {print NR - 1}')
 	if [ "$uncutnsize" -lt 3 ]; then
@@ -402,7 +443,7 @@ elif [ -a $uncut1 ]; then
 	fi
 else
 	# if provided list does not exist report error and exit
-	echo "$uncut1 could not be found" >&2
+	echo "$uncut1 could not be found or is empty" >&2
 	exit 1
 fi
 	
@@ -419,7 +460,56 @@ elif [ $number_of_lists -gt 16 ]; then
 	echo "Warning: over 16 n-gram lists supplied, this will take time" >&2
 fi
 
-	
+# check if lists are consecutive with regard to n-size
+if [ "$verbose" == "true" ]; then
+	echo "checking whether n of n-gram lists are consecutive"
+fi
+n=$(expr $number_of_lists + 1)
+while [ $n -gt 1 ]; do
+	if [ -s $SCRATCHDIR/$n.lst ]; then
+		if [ "$verbose" == "true" ]; then
+			echo -n "$n "
+		fi
+		(( n -= 1 ))
+	else
+		echo " " >&2
+		echo "Error: list with $n-grams is missing. Check that n-gram lists of consecutive n are provided." >&2
+		exit 1
+	fi
+done
+if [ "$verbose" == "true" ]; then
+	echo "... test passed"
+fi
+
+# if prep stage is requested,
+# check that the greatest n of uncut lists is at most n of cut lists +1 and at least n
+if [ "$no_prep_stage" == "true" ]; then
+	:
+else
+	n=$(expr $number_of_lists + 1)
+	nu=$(eval echo \$nsize_u$number_of_uncut_lists)
+	if [ $n -eq $nu ]; then
+		:
+	elif [ $(expr $n + 1 ) -eq $nu ]; then
+		:
+	else
+		# delete reference to uncut list with largest n
+		eval uncut$number_of_uncut_lists=""
+		# reduce number_of_uncut_lists
+		(( number_of_uncut_lists -= 1))
+		# check again
+		nu=$(eval echo \$nsize_u$number_of_uncut_lists)
+		if [ $n -eq $nu ]; then
+			:
+		elif [ $(expr $n + 1 ) -eq $nu ]; then
+			:
+		else
+			echo "Error: the largest n of uncut lists is $nu, the largest n of cut lists is $n"  >&2
+			exit 1
+		fi
+	fi
+fi
+
 if [ "$no_prep_stage" == "true" ]; then
 	if [ "$verbose" == "true" ]; then
 		echo "running without preparatory stage"
@@ -429,6 +519,9 @@ else
 
 
 ##### starting prep_stage procedure #####
+		
+		
+		#$number_of_uncut_lists
 		
 		# establish which list we are starting from
 		# that is, one smaller than n-size of first uncut list
@@ -495,7 +588,7 @@ fi
 
 # report to user
 if [ "$verbose" == "true" ]; then
-	echo "the number of lists to be consolidated is $number_of_lists"
+	echo "$number_of_lists lists to be consolidated"
 fi
 
 # name n-gram lists with the 'argN' variable
@@ -516,7 +609,7 @@ if [ -n $(head -1 $(eval echo \$arg$number_of_lists) | cut -f 3) ]; then
 fi
 
 
-#### start consolidation
+####### start consolidation #######
 
 # initialise indices
 longlistindex="$number_of_lists"

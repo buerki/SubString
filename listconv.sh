@@ -2,7 +2,7 @@
 
 ##############################################################################
 # listconv.sh (c) ABuerki 2009-2011, licensed under the EUPL V.1.1.
-version="0.8"
+version="0.8.1"
 ####
 # DESCRRIPTION: converts the format of n-gram lists between those of NGramTools
 #				(found at http://homepages.inf.ed.ac.uk/lzhang10/ngram.html),
@@ -59,14 +59,15 @@ version="0.8"
 #################
 #
 #	default:	'n<>gram<> 370	320'
-#				(i.e. tab n-gram TAB frequency doc frequency)
-#				if no second number is present in the source list, a 0 will be
-#				inserted in second place in the output list
+#				(i.e. n-gram, frequency, [doc frequency], tab delimited)
 #
 #	-t option	'n gram 6'
 #				(i.e. the NGramTools format)
 #
-#
+###############
+# history
+# date			change
+# 23 Dec 2011	remove placement of empty (i.e. 0) document count into output lists
 
 
 ### defining functions
@@ -79,7 +80,7 @@ Options:  -v verbose
           -h help
           -t  output list in NGramTools format (i.e. 'n gram 0')
 note:	  the script automatically recognises the format of the input list
-          and converts to the format 'n<>gram<>	0	0'"
+          and converts to the format 'n<>gram<>	0[	0]'"
 }
 
 # define getch function
@@ -266,8 +267,8 @@ for list in $@
 				fi
 				
 				# remove any lines with only numbers,
-				# insert tab before final number, add 0 doc count
-				sed -e '/^[0-9]*$/d' -e 's/>\([0-9]*$\)/>	\1/g' -e 's/$/	0/g'  < $list. > $list
+				# insert tab before final number
+				sed -e '/^[0-9]*$/d' -e 's/>\([0-9]*$\)/>	\1/g' < $list. > $list
 				rm $list.
 			fi
 		fi
