@@ -1,4 +1,4 @@
-SubString v0.8.2 (http://andy740.github.com/SubString/)
+SubString v0.8.7 (http://andy740.github.com/SubString/)
 =======================================================
 
 The SubString package is a set of Unix Shell scripts used to consolidate frequencies of word n-grams of different length. In the process, the frequencies of substrings are reduced by the frequencies of their superstrings and a consolidated list with n-grams of different length is produced without an inflation of the overall word count. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word sequences and other phraseological phenomena.
@@ -129,7 +129,7 @@ Thirdly, n-gram lists to be consolidated by substring.sh need to conform to the 
 3) it is strongly recommended that n-gram lists do not contain
    n-grams across sentence boundaries
 4) input lists must be of the format n<>gram<>	0[	0]
-   that is, the words of the n-grams are separated by '<>' then a tab follows, then the FREQUENCY COUNT. Optionally, a tab and possibly some more information may follow. This additional information could be document counts or measures of association strength. It is important to note that only the first number after the n-gram (i.e. the frequency) is consolidated. All following information is merely copied from the source lists to the output lists.
+   that is, the words of the n-grams are separated by '<>' then a tab follows, then the FREQUENCY COUNT. Optionally, a tab and possibly some more information may follow. This additional information could be document counts or measures of association strength. It is important to note that only the first number after the n-gram (which is assumed to be the frequency) is consolidated and will appear in the consolidated output list. The only exception to this is if the -d option (see below) is active, in which case it is assumed that the number following the frequency is a document count (i.e. a count of the number of documents in which the n-gram appears) and it will appear in the output list.
 
 To convert lists into the required input format use listconv.sh as described above.
 
@@ -145,7 +145,11 @@ FILE+ again stands for the input lists, i.e. the lists that should be consolidat
 	
 		substring.sh 2-gram.lst 3-gram.lst 4-gram.lst
 	
-substring.sh now takes the input lists, consolidates them and displays the consolidated output which should correspond to the result in example (1)b. To see processing information, the -v option can be invoked. While the -v option is active, the result will not be displayed on screen (as it would be mingled with the processing information that is being displayed). Instead, the result is put in an output file in the current working directory: 2.lst-4.lst.substrd. The default name for the consolidated list ends in .substrd, but depending on the input lists, the preceding part of the name will be different. It is possible to specify where the output list should go and how it should be named by invoking the -o option followed by output file name (and a path if desired). This holds regardless of whether the -v option is active. Here's an example:
+substring.sh now takes the input lists, consolidates them and displays the consolidated output which should correspond to the result in example (1)b. The output is sorted according to the n-grams themselves, rather than their frequency. To have the output sorted in decending order of frequency (n-gram with highest frequency first), use the -f option:
+
+		substring.sh -f 2-gram.lst 3-gram.lst 4-gram.lst
+
+Now the n-grams appear in the order of frequency. To see processing information, the -v option can be invoked. While the -v option is active, the result will not be displayed on screen (as it would be mingled with the processing information that is being displayed). Instead, the result is put in an output file in the current working directory: 2.lst-4.lst.substrd. The default name for the consolidated list ends in .substrd, but depending on the input lists, the preceding part of the name will be different. It is possible to specify where the output list should go and how it should be named by invoking the -o option followed by output file name (and a path if desired). This holds regardless of whether the -v option is active. Here's an example:
 	
 	substring.sh -vo $HOME/Desktop/OUT.lst 2-gram.lst 3-gram.lst 4-gram.lst
 	
@@ -172,6 +176,10 @@ Running substring.sh on the data in the 'example3' directory of the test_data fo
 
 	substring.sh -v -u 4-grams -u 5-grams 2-grams.cut.\(\[0-3\]\) 3-grams.cut.\(\[0-3\]\) 4-grams.cut.\(\[0-3\]\) 5-grams.cut.\(\[0-3\]\)
 
+The lists in the 'example3' directory contain a document count (i.e. a count of the number of documents each n-gram appears in) in addition to the frequency of each n-gram. This information is not normally carried over to the consolidated list. If the -d option is passed to substring.sh, however, the document counts (which must appear after the frequency, separated by a tab) appear in the consolidated list. The document counts are adjusted if necessary so that they maximally equal the frequency of a consolidated n-gram, though they might of course be lower than that. To make document counts appear in the consolidated list, enter:
+
+	substring.sh -v -d -u 4-grams -u 5-grams 2-grams.cut.\(\[0-3\]\) 3-grams.cut.\(\[0-3\]\) 4-grams.cut.\(\[0-3\]\) 5-grams.cut.\(\[0-3\]\)
+
 
 E. Known Issues
 ---------------
@@ -182,12 +190,12 @@ none at this time
 F. Warning
 ----------
 
-SubString 0.8.2 is at beta stage. It is recommended that data to be processed are backed up before the software is used.
+SubString 0.8.7 is at beta stage. It is recommended that data to be processed are backed up before the software is used.
 
 
 G. Copyright, licensing, download
 ---------------------------------
 
-SubString 0.8.2 is (c) 2010-2011 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public License) as open source software.
+SubString 0.8.7 is (c) 2010-2012 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public License) as open source software.
 
-The project resides at http://andy740.github.com/SubString/ and new versions will be posted there. Suggestions and feedback are welcome. To be notified of new releases, go to https://github.com/andy740/SubString, click on the 'Watch' button and sign in.
+The project resides at http://andy740.github.com/SubString/ and new versions will be posted there. A mirror is kept at https://developer.berlios.de/projects/substrd . Suggestions and feedback are welcome. To be notified of new releases, go to https://github.com/andy740/SubString, click on the 'Watch' button and sign in.

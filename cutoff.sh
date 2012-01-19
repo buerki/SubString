@@ -1,8 +1,8 @@
 #!/bin/bash -
 
 ##############################################################################
-# cutoff.sh (c) Andreas Buerki 2009-2011, licensed under the EUPL V.1.1.
-version="0.8"
+# cutoff.sh (c) Andreas Buerki 2009-2012, licensed under the EUPL V.1.1.
+version="0.8.7"
 ####
 # DESCRRIPTION: enforces frequency cutoffs in n-gram lists
 # SYNOPSIS: cutoff.sh [-f 'regex'][-d 'regex'] [-a 'regex'] FILE(S)
@@ -59,7 +59,10 @@ version="0.8"
 # 10/02/2011	fixed -a option
 # 30/04/2011	errors channelled to strderr
 # 22/12/2011	added -V option
-#
+# 07 Jan 2012	adjusted verbose behaviour to list the lists that will be
+#				processed
+# 11 Jan 2012	added add_to_name function for output filenames
+# (0.8.7)
 
 # define functions
 help ( ) {
@@ -74,6 +77,31 @@ Usage ( ) {
 Usage: $(basename $0)  [-f cutoff_regex][-d cutoff_regex] [-v] FILE[S]
 use -h for help
 "
+}
+
+# define add_to_name function
+add_to_name ( ) {
+#####
+# this function checks if a file name (given as argument) exists and
+# if so appends a number at the end of the name so as to avoid overwriting 
+# existing files of the name as in the argument or any with the same name as the 
+# argument plus an incremented number count appended.
+####
+
+count=
+if [ -a $1 ]; then
+	add=-
+	count=1
+	while [ -a $1-$count ]
+		do
+		(( count += 1 ))
+		done
+else
+	count=
+	add=
+fi
+output_filename=$(echo "$1$add$count")
+
 }
 
 # analyse options
@@ -95,7 +123,7 @@ do
 	v)	verbose=true
 		;;
 	V)	echo "$(basename $0)	-	version $version"
-		echo "Copyright (c) 2010-2011 Andreas Buerki"
+		echo "Copyright (c) 2010-2012 Andreas Buerki"
 		echo "licensed under the EUPL V.1.1"
 		exit 0
 		;;
@@ -116,8 +144,18 @@ fi
 #	exit 0
 #fi
 
+if [ "$verbose" == "true" ]; then
+	echo "the following files will be processed"
+	echo "$(echo $@ | sed 's/ /\
+/g')"
+	echo " "
+fi
+
 for arg in $@
 		do
+			if [ "$verbose" == "true" ]; then
+				echo "processing file $arg ..."
+			fi
 			# check for data structure in input files and treat accordingly
 			# 1 tab -> case 1: n<>gram<>	freq
 			# 2 tabs -> case 2: n<>gram<>	freq	doc
@@ -135,8 +173,10 @@ for arg in $@
 				elif [ "$a" = "given" ]; then
 					echo "this list does not seem to contain score information: $(head -1 $arg)" >&2
 				fi
+				# make name for output file
+				add_to_name $arg.cut.$nfreq
 				# execute desired cutoff
-				cat $arg | grep -E -v "<>	$nfreq$|^[0-9]*$" > $arg.cut.$nfreq
+				cat $arg | grep -E -v "<>	$nfreq$|^[0-9]*$" > $output_filename
 				
 			elif [ $(head -1 $arg | awk -v RS="	" 'END {print NR - 1}') -eq 2 ] ; then # n-gram	freq doc
 				if [ "$verbose" == "true" ]; then
@@ -147,10 +187,16 @@ for arg in $@
 					echo "this list does not seem to contain score information: $(head -1 $arg)" >&2
 				fi
 				# check if docment cutoff was specified
-				if [ "$d" = "given" ]; then # execute desired cutoffs
-					cat $arg | grep -E -v "<>	$nfreq	|<>	[0-9]*	$doc$|^[0-9]*$" > $arg.cut.$nfreq.$doc
-				else # execute desired cutoffs
-					cat $arg | grep -E -v "<>	$nfreq	|^[0-9]*$" > $arg.cut.$nfreq
+				if [ "$d" = "given" ]; then
+					# make name for output file
+					add_to_name $arg.cut.$nfreq.$doc
+					# execute desired cutoffs
+					cat $arg | grep -E -v "<>	$nfreq	|<>	[0-9]*	$doc$|^[0-9]*$" > $output_filename
+				else 
+					# make name for output file
+					add_to_name $arg.cut.$nfreq
+					# execute desired cutoffs
+					cat $arg | grep -E -v "<>	$nfreq	|^[0-9]*$" > $output_filename
 				fi
 				
 			elif [ $(tail -n 1 $arg | awk -v RS="	" 'END {print NR - 1}') -eq 3 ] ; then # if tab-delimited with 3 tabs
@@ -162,12 +208,16 @@ for arg in $@
 				if [ "$verbose" == "true" ]; then
 					echo "T/F list recognised"
 				fi
-				cat $arg | grep -E -v "<>	$nfreq	|<>	[0-9]*	$doc	[TF]$|^[0-9]*$" > $arg.cut.$nfreq.$doc
+				# make name for output file
+				add_to_name $arg.cut.$nfreq.$doc
+				cat $arg | grep -E -v "<>	$nfreq	|<>	[0-9]*	$doc	[TF]$|^[0-9]*$" > $output_filename
 				else # n-gram rank stats freq
 				if [ "$verbose" == "true" ]; then
 					echo "rank stats freq list recognised"
 				fi
-				cat $arg | grep -E -v "<>	[0-9]*	[0-9]*\.[0-9]*	$nfreq$|<>	[0-9]*	$score\.[0-9]*" > $arg.cut.$nfreq.$score
+				# make name for output file
+				add_to_name $arg.cut.$nfreq.$score
+				cat $arg | grep -E -v "<>	[0-9]*	[0-9]*\.[0-9]*	$nfreq$|<>	[0-9]*	$score\.[0-9]*" > $output_filename
 				fi
 				
 			elif [ $(tail -n 1 $arg | awk -v RS=" " 'END {print NR - 1}') -eq 3 ] ; then # if space-delimited with 3 tabs
@@ -179,25 +229,33 @@ for arg in $@
 				if [ "$verbose" == "true" ]; then
 					echo "n-gram freq doc T|F list recognised"
 				fi
-				cat $arg | grep -E -v "<> $nfreq |<> [0-9]* $doc	[TF]$|^[0-9]*$" > $arg.cut.$nfreq.$doc
+				# make name for output file
+				add_to_name $arg.cut.$nfreq.$doc
+				cat $arg | grep -E -v "<> $nfreq |<> [0-9]* $doc	[TF]$|^[0-9]*$" > $output_filename
 				else # n-gram rank stats freq
 				if [ "$verbose" == "true" ]; then
 					echo "n-gram rank stats freq list recognised"
 				fi
-				cat $arg | grep -E -v "<> [0-9]* [0-9]*\.[0-9]* $nfreq$|<> [0-9]* $score\.[0-9]*" > $arg.cut.$nfreq.$score
+				# make name for output file
+				add_to_name $arg.cut.$nfreq.$score
+				cat $arg | grep -E -v "<> [0-9]* [0-9]*\.[0-9]* $nfreq$|<> [0-9]* $score\.[0-9]*" > $output_filename
 				fi
 			
 			elif [ $(head -1 $arg | awk -v RS="	" 'END {print NR - 1}') -eq 4 ] ; then # n-gram rank stats freq doc
 				if [ "$verbose" == "true" ]; then
 					echo "n-gram rank stats freq doc list recognised"
 				fi
-				cat $arg | grep -E -v "<>	[0-9]*	[0-9]*\.[0-9]*	$nfreq	|<>	[0-9]*	[0-9]*\.[0-9]*	[0-9]*	$doc$|<>	[0-9]*	$score\.[0-9]*" > $arg.cut.$nfreq.$doc.$score
+				# make name for output file
+				add_to_name $arg.cut.$nfreq.$doc.$score
+				cat $arg | grep -E -v "<>	[0-9]*	[0-9]*\.[0-9]*	$nfreq	|<>	[0-9]*	[0-9]*\.[0-9]*	[0-9]*	$doc$|<>	[0-9]*	$score\.[0-9]*" > $output_filename
 				
 			elif [ $(head -1 $arg | awk -v RS=" " 'END {print NR - 1}') -eq 4 ] ; then # n-gram rank stats freq doc, space delimited
 				if [ "$verbose" == "true" ]; then
 					echo "n-gram rank stats freq doc, space delimited list recognised"
 				fi
-				cat $arg | grep -E -v "<> [0-9]* [0-9]*\.[0-9]* $nfreq |<> [0-9]* [0-9]*\.[0-9]* [0-9]* $doc$|<> [0-9]* $score\.[0-9]*" > $arg.cut.$nfreq.$doc.$score
+				# make name for output file
+				add_to_name $arg.cut.$nfreq.$doc.$score
+				cat $arg | grep -E -v "<> [0-9]* [0-9]*\.[0-9]* $nfreq |<> [0-9]* [0-9]*\.[0-9]* [0-9]* $doc$|<> [0-9]* $score\.[0-9]*" > $output_filename
 				
 			else
 				echo "input list format not recognised: $(head -n 1 $arg)" >&2

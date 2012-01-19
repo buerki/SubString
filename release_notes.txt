@@ -1,3 +1,23 @@
+release notes v. 0.8.7
+**********************
+substring.sh:
+- added -d option which will preserve any document counts that may be present
+  in source lists and reduced those document counts to maximally be equal to the
+  frequency each n-gram
+- added a check to make sure no n-grams are doubly imported during the prep
+  stage
+- added a checking stage where input lists are checked for the right format
+  before being processed
+- fixed a minor bugs that could result in premature exiting of the script under
+  certain conditions
+
+cutoff.sh:
+- adjusted verbose behaviour to list the input files that will be processed
+- adjusted naming of output files to prevent overwriting of existing files
+  with identical names.
+
+README.txt: adjusted to document new -d option in substring.sh
+
 release notes v. 0.8.2
 **********************
 - adjusted test_data
