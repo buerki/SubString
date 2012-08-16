@@ -2,7 +2,7 @@
 
 ##############################################################################
 # substring.sh (c) Andreas Buerki 2011, licensed under the EUPL V.1.1.
-version="0.8.7"
+version="0.9"
 ####
 # DESCRRIPTION: performs frequency consolidation among different length n-grams
 #				for options see -h
@@ -28,6 +28,10 @@ version="0.8.7"
 #				as n-gram frequency) as well as format check for input lists
 # 16 Jan 2012	added check whether all input files exist and adjusted progress reporting
 # (0.8.7)		on prep stage to look nicer, added -f option
+# 20 Feb 2012	added identifier line to neg-freq.lst
+# (0.8.9)
+# 05 May 2012
+# (0.9)			added -n and -z option, removed -m option, adjusted help
 
 
 
@@ -37,9 +41,12 @@ help ( ) {
 Usage:    $(basename $0) [OPTIONS] [-u uncut_list]+ FILE+
 Options:  -v verbose (output will not appear on stdout if -v is active)
           -h help
+          -d include document count in consolidated lists
           -f sort output list according to frequency (highest first)
+          -n include sequences in the final list that show negative frequency
           -o specify an output filename (and location)
           -k keep intermediate files
+          -z include sequences that feature a consolidated freq. of zero 
 Notes:    the output is put in a .substrd file in the pwd unless a different
           output file and location are passed using the -o option
           If -v and -o options are inactive, output is sent to STOUT instead."
@@ -338,8 +345,12 @@ for line in $(sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g' -e 's/\//SLASH/g'< "$1")
 			# create file so that it is there even if nothing is later written to it
 			touch "$1".tmp
 			
-			if [ "$show_minus_zero_freq" == "true" ] ; then
+			if [ "$show_neg_freq" == "true" ] ; then
 				echo $searchline	$newfreq$remaining_numbers >> "$1".tmp
+			elif [ "$show_zero_freq" == "true" ] ; then
+				if [ $newfreq -ge 0 ]; then
+					echo $searchline	$newfreq$remaining_numbers >> "$1".tmp
+				fi
 			else
 				if [ $newfreq -gt 0 ]; then
 					echo $searchline	$newfreq$remaining_numbers >> "$1".tmp
@@ -362,7 +373,7 @@ fi
 #################################end define functions########################
 
 # analyse options
-while getopts hdfkmo:u:vV opt
+while getopts hdfkno:u:vVz opt
 do
 	case $opt	in
 	h)	help
@@ -374,7 +385,8 @@ do
 		;;
 	k)	keep_intermediate_files=true
 		;;
-	m)	show_minus_zero_freq=true # this includes neg_freq sequences in final output
+	n)	show_neg_freq=true
+		# this includes neg_freq (and 0-freq) sequences in final output
 		;;
 	o)	special_outdir=$OPTARG
 		;;
@@ -401,6 +413,7 @@ do
 		echo "licensed under the EUPL V.1.1"
 		exit 0
 		;;
+	z)	show_zero_freq=true # this includes zero sequences in final output
 	esac
 done
 
@@ -480,7 +493,14 @@ else
 	echo "$uncut1 could not be found or is empty" >&2
 	exit 1
 fi
-	
+
+# put directory where input files are into input_dir
+if [ -z "$dirname $1" ]; then
+	input_dir=$(pwd)
+else
+	input_dir=$(dirname $1)
+fi
+
 # RENAME n-gram lists into N.lst format and put them in the SCRATCHDIR
 rename_to_tmp $@
 
@@ -638,6 +658,7 @@ fi
 # check if neg_freq.lst exists and put resulting filename in neg_freq_list_name variable
 add_to_name neg_freq.lst
 neg_freq_list_name="$output_filename"
+
 
 # check we kept track of number of lists correctly
 if [ $number_of_lists -eq "$(ls $SCRATCHDIR/*.lst | wc -l)" ]; then
@@ -833,6 +854,9 @@ rm -r $SCRATCHDIR
 
 # negative frequency warning
 if [ -n "$neg_freq_counter" ]; then
+	# write identifier line to neg_freq.lst
+	echo "# neg_freq list for $input_dir/$outlist - $(date)" | cat - $neg_freq_list_name > $neg_freq_list_name.
+	mv $neg_freq_list_name. $neg_freq_list_name
 	echo "$neg_freq_counter negative frequencies encountered. see $neg_freq_list_name"  >&2
 fi
 # display time of completion

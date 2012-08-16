@@ -1,3 +1,27 @@
+release notes v. 0.9
+********************
+
+README.txt: 
+- adjusted recommended installation directory 
+
+cutoff.sh: 
+- added -n N option which restricts the cutoff to n-grams of size N. This
+  is useful if a list with different lengths of n-grams (such as after 
+  consolidation with substring.sh) needs to have length-specific cutoffs
+  applied. The -n option only processes lists of formats 'n<>gram<> 370' or
+  'n<>gram<>	370	258'
+- expanded help available in -h option
+
+substring.sh:
+- added an identifyer line to the neg-freq.lst file which logs negative
+  frequencies
+- renamed the -m option to -n option as this is a more easily remembered name
+  for the option to retain negative frequency strings and 0-frequency strings in
+  the output lists
+- added -z option to include sequences with zero-frequency (but not with
+  negative frequency) in the final output list 
+- adjusted help (-h) accordingly
+
 release notes v. 0.8.7
 **********************
 substring.sh:

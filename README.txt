@@ -1,5 +1,5 @@
-SubString v0.8.7 (http://andy740.github.com/SubString/)
-=======================================================
+SubString v0.9 (http://andy740.github.com/SubString/)
+=====================================================
 
 The SubString package is a set of Unix Shell scripts used to consolidate frequencies of word n-grams of different length. In the process, the frequencies of substrings are reduced by the frequencies of their superstrings and a consolidated list with n-grams of different length is produced without an inflation of the overall word count. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word sequences and other phraseological phenomena.
 
@@ -45,25 +45,25 @@ C. Installation
 
 SubString was tested on MacOS X (v. 10.6 and 10.7) and Ubuntu Linux (versions Xubuntu 9.04 and 10.04), but should run on all platforms that can run a bash script.
 
-Generally, all scripts (i.e. the files ending in .sh) should be placed in a location that is in the user's $PATH variable (or the location should be added to the $PATH variable) so they can be called from the command line. A good place to put the scripts might be /usr/bin.
+Generally, all scripts (i.e. the files ending in .sh) should be placed in a location that is in the user's $PATH variable (or the location should be added to the $PATH variable) so they can be called from the command line. A good place to put the scripts might be /usr/local/bin.
 
 Detailed instructions of how to do this are given here for MacOS and Ubuntu:
    1) open the Terminal application 
       MacOS X: in Applications/Utilities
       Ubuntu Linux: via menu Applications>Accessories>Terminal
-   2) type: mkdir /usr/bin	(it may say 'File exists', that's fine)
-   3) type: echo $PATH (if you can see /usr/bin somewhere in the
+   2) type: mkdir /usr/local/bin	(it may say 'File exists', that's fine)
+   3) type: echo $PATH (if you can see /usr/local/bin somewhere in the
       output, move to step 8, if not carry on with the next step)
    4) type: cd $HOME
       type: cp .profile .profile.bkup (if it says there no such file,
       that's fine)
    5) type: vi .profile
    6) move to an empty line and press the i key, then enter the
-      following: PATH=/usr/bin:$PATH
+      following: PATH=/usr/local/bin:$PATH
    7) press ESC, then type :wq!
    8) move into the SubString directory. This can be done by typing cd
       (make sure there is a space after cd) and then dragging the SubString folder onto the Terminal window and pressing return.
-   9) type: sudo cp *.sh /usr/bin (you will need to enter an admin password)
+   9) type: sudo cp *.sh /usr/local/bin (you will need to enter an admin password)
 
       Done!
 
