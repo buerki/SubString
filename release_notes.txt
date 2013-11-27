@@ -1,3 +1,17 @@
+release notes v. 0.9.1
+**********************
+
+README.txt: 
+- adjusted for new home page url
+- adjusted to reflect changes below
+
+cutoff.sh, listconv.sh, substring.sh:
+- now operate with flexible n-gram constituent separators for compatibility
+  with the N-Gram Processor (http://buerki.github.io/ngramprocessor)
+  
+test_data
+- added GOLD standard lists
+
 release notes v. 0.9
 ********************
 

@@ -1,5 +1,6 @@
-SubString v0.9.1 (http://buerki.github.com/SubString/)
-======================================================
+![alt](icon.png)
+SubString v0.9.1 
+================
 
 The SubString package is a set of Unix Shell scripts used to consolidate frequencies of word n-grams of different length. In the process, the frequencies of substrings are reduced by the frequencies of their superstrings and a consolidated list with n-grams of different length is produced without an inflation of the overall word count. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word sequences and other phraseological phenomena.
 
@@ -12,7 +13,9 @@ The 4-gram 'have a lovely time' occurs with a frequency of 15. The trigrams 'hav
 
 The remaining bigrams ('have a', 'a lovely' and 'lovely time') are also substrings of 'have a lovely time' and therefore also need to have their frequency reduced by 15 (resulting in a frequency of 34692 for 'have a', 86 for 'a lovely' and 30 for 'lovely time'. In addition, 'have a' and 'a lovely' are substrings of 'have a lovely' and therefore the frequency of 'have a lovely' which is now 43, needs to be deducted from their frequencies. This results in a new frequency of 34649 for 'have a' and 43 for 'a lovely'. 'a lovely' and 'lovely time' are furthermore substrings of 'a lovely time' and consequently need to have their frequencies reduced by that of 'a lovely time' (i.e. by 29): the consolidated frequency of 'a lovely' is now 14, that of 'lovely time' is 1. The output of the frequency consolidation is shown in (1)b.
 
-(1) a  have a lovely time  15     b  have a lovely time   15
+       (1)a                          (1)b
+       
+       have a lovely time  15        have a lovely time   15
        have a lovely       58        have a lovely        43
        a lovely time       44        a lovely time        29
        have a           34707        have a            34649
@@ -29,17 +32,17 @@ B. Components
 
 The current release of the SubString package contains the following components:
 
-substring.sh     The main script for user interaction
+*	`substring.sh`     The main script for user interaction
 
-cutoff.sh        Performs frequency cut-offs
+*	`cutoff.sh`        Performs frequency cut-offs
 
-listconv.sh      Can be used to convert input lists to required format
+*	`listconv.sh`      Can be used to convert input lists to required format
                     
-README.txt       this document
+*	`README.txt`       this document
 
-test_data        a directory containing test data
+*	`test_data`        a directory containing test data
 
-EUPL.pdf         a copy of the European Union Public License under which SubString is licensed.
+*	`EUPL.pdf`         a copy of the European Union Public License under which SubString is licensed.
 
 
 C. Installation
@@ -50,32 +53,32 @@ SubString was tested on MacOS X (v. 10.6 and 10.7) and Ubuntu Linux (versions Xu
 Generally, all scripts (i.e. the files ending in .sh) should be placed in a location that is in the user's $PATH variable (or the location should be added to the $PATH variable) so they can be called from the command line. A good place to put the scripts might be /usr/local/bin.
 
 Detailed instructions of how to do this are given here for MacOS and Ubuntu:
-   1) open the Terminal application 
+
+1. open the Terminal application 
       MacOS X: in Applications/Utilities
       Ubuntu Linux: via menu Applications>Accessories>Terminal
-   2) type: mkdir /usr/local/bin	(it may say 'File exists', that's fine)
-   3) type: echo $PATH (if you can see /usr/local/bin somewhere in the
+2. type: `mkdir /usr/local/bin`	(it may say 'File exists', that's fine)
+3. type: `echo $PATH` (if you can see /usr/local/bin somewhere in the
       output, move to step 8, if not carry on with the next step)
-   4) type: cd $HOME
-      type: cp .profile .profile.bkup (if it says there no such file,
+4. type: `cd $HOME`
+      type: `cp .profile .profile.bkup` (if it says there no such file,
       that's fine)
-   5) type: vi .profile
-   6) move to an empty line and press the i key, then enter the
-      following: PATH=/usr/local/bin:$PATH
-   7) press ESC, then type :wq!
-   8) move into the SubString directory. This can be done by typing cd
-      (make sure there is a space after cd) and then dragging the SubString folder onto the Terminal window and pressing return.
-   9) type: sudo cp *.sh /usr/local/bin (you will need to enter an admin password)
+5. type: `vi .profile`
+6. move to an empty line and press the i key, then enter the
+      following: `PATH=/usr/local/bin:$PATH`
+7. press ESC, then type `:wq!`
+8. move into the SubString directory. This can be done by typing `cd `      (make sure there is a space after `cd `) and then dragging the SubString folder onto the Terminal window and pressing return.
+9. type: `sudo cp *.sh /usr/local/bin` (you will need to enter an admin password)
 
       Done!
 
 The installation can be verified by calling each script's help function for the command line of a Terminal window:
 
-1) open a new terminal window
+1. open a new terminal window
 
-2) Type substring.sh -h and hit enter. Try the same with cutoff.sh -h and listconv.sh -h.
+2. Type `substring.sh -h` and hit enter. Try the same with `cutoff.sh -h` and `listconv.sh -h.`
 
-3) If the help texts appear, all is in order.
+3. If the help texts appear, all is in order.
 
 For further tests, you may wish to run SubString on the test data (see next section)
 
@@ -84,7 +87,7 @@ D. Operation
 ------------
 
 
-LISTCONV.SH
+**LISTCONV.SH**
 
 substring.sh (below) requires n-gram lists to be formatted in the following fashion: n<>gram<>	0[	0]
 That is, an n-gram (with constituents either delimied by diamonds (as shown) or the unicode character interpunct (middle dot)), followed by a tab and the frequency count, optionally followed by another tab and a document count. This script can be used to convert n-gram lists into this format. listconv.sh is able to convert output lists created with the N-Gram Processor (http://buerki.github.io/ngramprocessor), the Ngram Statistics Package (Text-NSP, <http://ngram.sourceforge.net>) or those created by NGramTools (http://homepages.inf.ed.ac.uk/lzhang10/ngram.html or http://morphix-nlp.berlios.de/manual/node28.html).
@@ -98,13 +101,14 @@ Where FILE+ is the name of one or more lists to be converted (if the list is not
 
 
 
-CUTOFF.SH
+**CUTOFF.SH**
 
 cutoff.sh can be used to enforce frequency-cut-offs on n-gram lists prior to consolidation. This is how cutoff.sh is used:
 
 	cutoff.sh -f '(CUTOFF REGEX)' FILE+
 	
 Where '(CUTOFF REGEX)' stands for a regular expression detailing the frequency cut-off to be applied. This needs to be quoted (i.e. have '( )' around it). Cut-off frequencies need to cover the frequencies that one wishes to filter out. For example, if all n-grams with a frequency of less then 10 should be filtered out, the appropriate regular expression would be '([0-9])'. Further examples are:
+
 			<11      '([0-9]|[1][0])'
 			<12      '([0-9]|[1][0-1])'
 			<13      '([0-9]|[1][0-2])'
@@ -117,7 +121,7 @@ FILE+ again stands for one or more n-gram lists that should be frequency-filtere
 	
 
 
-SUBSTRING.SH
+**SUBSTRING.SH**
 
 substring.sh is the script that manages the frequency consolidation. Before detailing its operation, it is useful to highlight three areas of detail on how substring.sh handles frequency consolidation.
 
@@ -126,13 +130,15 @@ Firstly, n-gram lists extracted from a source document usually need to be filter
 Secondly, regardless of the type of filter applied, frequency consolidation with substrd.sh can be performed more accurately if the script has access to the unfiltered (or less severely filtered) n-gram lists as well as the filtered lists given as input. This applies to cases where n-gram lists of length n=5 and above are involved. substring.sh therefore includes an optional preparatory stage which looks up certain n-grams in unfiltered lists prior to frequency consolidation in order to resolve overlaps between n-grams. The script can also be run without this preparatory stage.
 
 Thirdly, n-gram lists to be consolidated by substring.sh need to conform to the following conditions:
-1) only one length of n-gram per input list (i.e. bigrams must be in
+
+1. only one length of n-gram per input list (i.e. bigrams must be in
    a separate input file from trigrams from 4-grams, etc.).
-2) minimally 2 input lists must be provided
-3) it is strongly recommended that n-gram lists do not contain
+2. minimally 2 input lists must be provided
+3. it is strongly recommended that n-gram lists do not contain
    n-grams across sentence boundaries
-4) input lists must be of the format n<>gram<>	0[	0]
-   that is, the words of the n-grams are separated by '<>' then a tab follows, then the FREQUENCY COUNT. Optionally, a tab and possibly some more information may follow. This additional information could be document counts or measures of association strength. It is important to note that only the first number after the n-gram (which is assumed to be the frequency) is consolidated and will appear in the consolidated output list. The only exception to this is if the -d option (see below) is active, in which case it is assumed that the number following the frequency is a document count (i.e. a count of the number of documents in which the n-gram appears) and it will appear in the output list.
+4. input lists must be of the format n<>gram<>	0[	0]
+ 
+that is, the words of the n-grams are separated by '<>' then a tab follows, then the FREQUENCY COUNT. Optionally, a tab and possibly some more information may follow. This additional information could be document counts or measures of association strength. It is important to note that only the first number after the n-gram (which is assumed to be the frequency) is consolidated and will appear in the consolidated output list. The only exception to this is if the -d option (see below) is active, in which case it is assumed that the number following the frequency is a document count (i.e. a count of the number of documents in which the n-gram appears) and it will appear in the output list.
 
 To convert lists into the required input format use listconv.sh as described above.
 
@@ -160,9 +166,9 @@ This will name the consolidated list 'OUT.lst' and place it in the user's deskto
 
 A more complex example is the following. Input lists for this example are provided in SubString/test_data/example2. The lists with the extension .cut.([0-9]) have been frequency-filtered with cutoff.sh and contain only n-grams with a minimum frequency of 10. The lists without extension contain unfiltered lists of n-grams.
 
-		1) move to the directory example2 in the test_data directory
-		2) type the following (all on one line), then press enter:
-	
+1. move to the directory example2 in the test_data directory
+2. type the following (all on one line), then press enter:
+
 		substring.sh -v 2-grams.cut.\(\[0-9\]\) 3-grams.cut.\(\[0-9\]\) 4-grams.cut.\(\[0-9\]\) 5-grams.cut.\(\[0-9\]\) 6-grams.cut.\(\[0-9\]\) 7-grams.cut.\(\[0-9\]\)
 	
 substring.sh takes longer to process the lists this time because the amount of data is larger (lists are based on about 120,000 words of text). The output (the .substrd file) is again placed in the current directory. The output list will not contain any 7-grams because there are none above the chosen cutoff of 9 (the list 7-grams.cut.([0-9]) is in fact empty) and there is only one 6-gram above the cutoff. The list produced should be identical to 2.lst-6.lst.substrd-GOLD1 found in the directory example2. The consolidation will have produced some n-grams with frequencies below 10. To make sure the list only contains n-grams with a frequency of at least 10, cutoff.sh can be used to remove any n-grams below this frequency.

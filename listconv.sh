@@ -1,8 +1,8 @@
 #!/bin/bash -
 
 ##############################################################################
-# listconv.sh (c) ABuerki 2009-2011, licensed under the EUPL V.1.1.
-version="0.8.2"
+# listconv.sh (c) A Buerki 2011-2013 licensed under the EUPL V.1.1.
+version="0.8.3"
 ####
 # DESCRRIPTION: converts the format of n-gram lists between those of NGramTools
 #				(found at http://homepages.inf.ed.ac.uk/lzhang10/ngram.html),
@@ -10,7 +10,7 @@ version="0.8.2"
 #				ngram.sourceforge.net) and the format for substrd.sh.
 #				The original list has the affix .bkup added to its name and
 #				a new list is produced in the desired format (by default this
-#				is the input format for substrd.sh: 'n<>gram<>	0	0' (tab
+#				is the input format for substrd.sh: 'n·gram·	0	0' (tab
 #				delimited).
 #
 # SYNOPSIS: listconv.sh [OPTIONS] FILE(S)
@@ -18,6 +18,7 @@ version="0.8.2"
 # OPTIONS:	-h	help
 #			-v 	verbose
 #			-t  output list in NGramTools format (i.e. 'n gram 0')
+#			-n  output list using diamond (<>) as separators
 ##############################################################################
 # 
 # input formats: (automatically recognised)
@@ -58,15 +59,18 @@ version="0.8.2"
 # output formats:
 #################
 #
-#	default:	'n<>gram<> 370	320'
+#	default:	'n·gram· 370	320'
 #				(i.e. n-gram, frequency, [doc frequency], tab delimited)
 #
 #	-t option	'n gram 6'
 #				(i.e. the NGramTools format)
 #
+#	-n option	'n<>gram<>	3	2'
+#				(i.e. n-gram, frequency, [doc frequency], tab delimited)
 ###############
 # history
 # date			change
+# 25 Nov 2013	added -n option and made default output use the interpunct
 # 23 Dec 2011	remove placement of empty (i.e. 0) document count into output lists
 
 
@@ -79,8 +83,10 @@ Usage:    $(basename $0) [OPTIONS] FILE(S)
 Options:  -v verbose
           -h help
           -t  output list in NGramTools format (i.e. 'n gram 0')
+          -n  output list using diamond (<>) as separator (i.e. 'n<>gram<>	0[ 0]')
+              The -n option should be used when in a non-unicode environment.
 note:	  the script automatically recognises the format of the input list
-          and converts to the format 'n<>gram<>	0[	0]'"
+          and converts to the format 'n·gram·	0[	0]'"
 }
 
 # define getch function
@@ -135,6 +141,10 @@ fi
 
 ### end define functions
 
+# set default outsep
+outsep='·'
+
+
 # analyse options
 while getopts hvt opt
 do
@@ -144,10 +154,12 @@ do
 		;;
 	v)	verbose=true
 		;;
+	n)	outsep='<>'
+		;;
 	t)	t2n=true
 		;;
 	V)	echo "$(basename $0)	-	version $version"
-		echo "Copyright (c) 2010-2011 Andreas Buerki"
+		echo "Copyright (c) 2011-2013 Andreas Buerki"
 		echo "licensed under the EUPL V.1.1"
 		exit 0
 		;;
@@ -213,8 +225,11 @@ for list in $@
 				
 			# if formats 4,5 or 6:
 			else
-				echo "$list already appears to be in the requested format: $(head -1 $list)" >&2
-				exit 0
+				# check if $list.bkup exists
+				exists $list.bkup
+				# append .bkup to original list
+				mv $list $list.bkup
+				sed 's/<>/·/g' < $list.bkup > $list
 			fi
 			
 		# if space-delimited (actually, if it is NOT tab delimited)
@@ -268,13 +283,17 @@ for list in $@
 				
 				# remove any lines with only numbers,
 				# insert tab before final number
-				sed -e '/^[0-9]*$/d' -e 's/>\([0-9]*$\)/>	\1/g' < $list. > $list
+				if [ "$outsep" == "<>" ]; then
+					sed -e '/^[0-9]*$/d' -e 's/>\([0-9]*$\)/>	\1/g' < $list. > $list
+				else
+					sed -e '/^[0-9]*$/d' -e 's/>\([0-9]*$\)/>	\1/g' -e 's/<>/·/g' < $list. > $list
+				fi
 				rm $list.
 			fi
 		fi
 		
 	#### if t2n formatted: ####
-	elif [ -n "$(egrep -m1 ' [0-9]*$' $list)" ]; then
+	elif [ -n "$(egrep -m1 ' [0-9]*$' $list)" ] && [ -n "$(grep -m1 ' .* ' $list)" ]; then
 		# we assume it is t2n formatted if it ends in a digit (or several)
 		# preceeded by a space
 		if [ "$t2n" == "true" ]; then
@@ -288,7 +307,7 @@ for list in $@
 		# now we check what n the n-gram is
 		# N=$(head -1 $list | awk -v RS=" " 'END {print NR - 1}')
 		# now we re-format the list
-		sed -e 's/ \([0-9]*\)$/ 	\1/g' -e 's/ /<>/g' < $list.bkup > $list
+		sed -e 's/ \([0-9]*\)$/ 	\1/g' -e "s/ /$outsep/g" < $list.bkup > $list
 		
 	# if not in a known format:
 	else

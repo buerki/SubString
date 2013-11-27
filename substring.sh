@@ -32,6 +32,9 @@ version="0.9"
 # (0.8.9)
 # 05 May 2012
 # (0.9)			added -n and -z option, removed -m option, adjusted help
+# 25 Nov 2013	programme now handles n-gram constituent separators flexibly
+# (0.9.1)		<> · and _ are recognised automatically, other can be specified
+#				using the -p option
 
 
 
@@ -45,6 +48,8 @@ Options:  -v verbose (output will not appear on stdout if -v is active)
           -f sort output list according to frequency (highest first)
           -n include sequences in the final list that show negative frequency
           -o specify an output filename (and location)
+          -p SEP specify the separator used in input lists (if none of the
+             standard separators (· <> or _) are used.
           -k keep intermediate files
           -z include sequences that feature a consolidated freq. of zero 
 Notes:    the output is put in a .substrd file in the pwd unless a different
@@ -98,7 +103,12 @@ rename_to_tmp ( ) {
 	for file in $@
 	do
 		# extract n of n-gram list
-		nsize=$(head -1 $file | awk -v RS="<>" 'END {print NR - 1}')
+		nsize=$(head -1 $file | awk '{c+=gsub(s,s)}END{print c}' s="$separator")
+		# if no n-size was detected, set $nsize to 0
+		if [ -z "$nsize" ]; then
+			nsize=0
+		fi
+		#echo $nsize
 		# create a copy named N.lst if N is more than 1
 		if [ $nsize -gt 1 ]; then
 			if [ "$verbose" == "true" ]; then
@@ -111,7 +121,7 @@ rename_to_tmp ( ) {
 			
 		# if it's not an empty list
 		elif [ -s $file ]; then
-			echo "Error: format of $file not recognised" >&2
+			echo "ERROR: format of $file not recognised" >&2
 			exit 1
 		# if it's an empty list, do nothing
 		else
@@ -132,7 +142,7 @@ shift
 
 
 #check that nsize of first argument is as expected
-if [ "$(head -1 $1 | awk -v RS="<>" 'END {print NR - 1}')" == "$start_list" ]; then
+if [ "$(head -1 $1 | awk '{c+=gsub(s,s)}END{print c}' s="$separator")" == "$start_list" ]; then
 	:
 else
 	echo "unexpected format in $1"
@@ -177,13 +187,13 @@ for line in $(sed 's/	.*//g' < $1) # line without frequencies
 		# (this would be the n-size of the current list minus 1)
 		extent=$(expr $nsize - 1)
 
-		right_cut=$(echo $line | cut -d '<' -f 1-$extent)
+		right_cut=$(echo $line | cut -d "$short_sep" -f 1-$extent)
 		
 		# step 2
 		# search for a string with anything as leftmost item, followed by
 		# the string that had its rightmost word cut off
 		# and put the result in the variable 'left_new'
-		left_new=$(grep "<>$right_cut" $1 | cut -f 1)
+		left_new=$(grep "$separator$right_cut" $1 | cut -f 1)
 		
 	
 		if [ -n "$(echo $left_new)" ]; then # check if anything was found
@@ -195,7 +205,7 @@ for line in $(sed 's/	.*//g' < $1) # line without frequencies
 			# and check if it exists in list given as second argument
 			for left in $left_new ; do
 
-				superstring=$(grep $(echo "$(echo $left | cut -d '<' -f 1)<>$line") $2)
+				superstring=$(grep $(echo "$(echo $left | cut -d "$short_sep" -f 1)$separator$line") $2)
 				
 				# step 4
 				# check if superstring was found
@@ -206,11 +216,11 @@ for line in $(sed 's/	.*//g' < $1) # line without frequencies
 				else
 					if [ "$hyperverbose" == "true" ]; then
 						echo "hypothetical superstring $(echo "$(echo $left \
-						| cut -d '<' -f 1)<>$line") does not exist."
+						| cut -d "$short_sep" -f 1)$separator$line") does not exist."
 					fi
 					
 					# write hypothetical superstrings that could not be found to a list
-					echo "$(echo "$(echo $left | cut -d '<' -f 1)<>$line")	not found in $2" \
+					echo "$(echo "$(echo $left | cut -d "$short_sep" -f 1)$separator$line")	not found in $2" \
 					>> $SCRATCHDIR/no_superstring.lst
 				fi
 				done
@@ -304,7 +314,7 @@ for line in $(sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g' -e 's/\//SLASH/g'< "$1")
 			cut -f 2 | sed 's/^\([0-9]*\)$/\1 +/g') 0)
 			
 			# match strings that have words to the left or ON BOTH SIDES of the search string
-			freq2_left_middle=$(expr $(grep "<>$searchline" "$2" | \
+			freq2_left_middle=$(expr $(grep "$separator$searchline" "$2" | \
 			cut -f 2 | sed 's/^\([0-9]*\)$/\1 +/g') 0)
 			
 			# add up the frequencies of all matching strings
@@ -373,7 +383,7 @@ fi
 #################################end define functions########################
 
 # analyse options
-while getopts hdfkno:u:vVz opt
+while getopts hdfkno:p:u:vVz opt
 do
 	case $opt	in
 	h)	help
@@ -389,6 +399,9 @@ do
 		# this includes neg_freq (and 0-freq) sequences in final output
 		;;
 	o)	special_outdir=$OPTARG
+		;;
+	p)	separator=$OPTARG
+		short_sep=$(cut -c 1 $OPTARG)
 		;;
 	u)	(( number_of_uncut_lists += 1 ))
 		if [ $number_of_uncut_lists -eq 1 ]; then
@@ -427,10 +440,31 @@ if [ "$SCRATCHDIR" == "" ] ; then
 	SCRATCHDIR=${TMPDIR-/tmp/}substring.$$
 fi
 
-# check if input lists exist
+# check if input lists exist and check separator used
 for list; do
 	if [ -e $list ]; then
-		:
+		# check separator for current list
+		if [ -n "$separator" ]; then
+			if [ -n "$(head -1 $list | grep "$separator")" ]; then
+				:
+			# if the list is not empty, produce error
+			elif [ -s $list ]; then
+				echo "separator $separator not found in $(head -1 $list) of file $list" >&2
+				exit 1
+			fi
+		elif [ -n "$(head -1 $list | grep '<>')" ]; then
+			separator='<>'
+			short_sep='<'
+		elif [ -n "$(head -1 $list | grep '·')" ]; then
+			separator="·"
+			short_sep="·"
+		elif [ -n "$(head -1 $list | grep '_')" ]; then
+			separator="_"
+			short_sep="_"
+		else
+			echo "unknown separator in $(head -1 $list) of file $list" >&2
+			exit 1
+		fi
 	else
 		echo "$list was not found"
 		exit 1
@@ -453,7 +487,7 @@ elif [ -s $uncut1 ]; then
 	i="$number_of_uncut_lists"
 	while [ $i -gt 0 ]; do
 		if [ -s $(eval echo \$uncut$i) ]; then
-			eval nsize_u$i=$(head -1 $(eval echo \$uncut$i) | awk -v RS="<>" 'END {print NR - 1}')
+			eval nsize_u$i=$(head -1 $(eval echo \$uncut$i) | awk '{c+=gsub(s,s)}END{print c}' s="$separator")
 			if [ "$verbose" == "true" ]; then
 				echo -n "$(eval echo \$nsize_u$i) "
 			fi
@@ -483,7 +517,7 @@ elif [ -s $uncut1 ]; then
 	
 	# establish n-size of first uncut list 
 	# and report error if unsuitable
-	uncutnsize=$(head -1 $uncut1 | awk -v RS="<>" 'END {print NR - 1}')
+	uncutnsize=$(head -1 $uncut1 | awk '{c+=gsub(s,s)}END{print c}' s="$separator")
 	if [ "$uncutnsize" -lt 3 ]; then
 		echo 'Error: the first uncut list must be a list of n-grams such that n > 2' >&2
 		exit 1
@@ -515,7 +549,7 @@ for listnumber in $(eval echo {2..$(expr $number_of_lists + 1)}); do
 	if [ -n "$(head -1 $SCRATCHDIR/$listnumber.lst | sed 's/	/_/g' | cut -d '_' -f 4)" ]; then
 		echo "CAUTION: $listnumber.lst is not of expected format:"
 		echo "format is: $(head -1 $SCRATCHDIR/$listnumber.lst)"
-		echo 'expected format is: n<>gram<>	0[	0]'
+		echo "expected format is: n$(echo $separator)gram$(echo $separator)	0[	0]"
 		echo "continue? (Y/N)"
 		getch
 		case $GETCH in
