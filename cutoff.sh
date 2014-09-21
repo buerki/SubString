@@ -1,8 +1,8 @@
 #!/bin/bash -
 
 ##############################################################################
-# cutoff.sh (c) Andreas Buerki 2011-2013, licensed under the EUPL V.1.1.
-version="0.8.9"
+# cutoff.sh (c) Andreas Buerki 2011-2014, licensed under the EUPL V.1.1.
+version="0.9.1"
 ####
 # DESCRRIPTION: enforces frequency cutoffs in n-gram lists
 # SYNOPSIS: cutoff.sh [-f 'regex'][-d 'regex'] [-a 'regex'] FILE(S)
@@ -73,6 +73,9 @@ version="0.8.9"
 # (0.8.8)	
 # 25 Nov 2013	made n-gram separators flexible; can not detect · _ or <> as
 # (0.8.9)		as valid constituent separators	or whatever is supplied in -p
+# 01 Sep 2014	made a few optimisation changes (replaced all cat | grep)
+# 07 Sep 2014   added -i option
+# (0.9.1)
 
 # define functions
 help ( ) {
@@ -87,6 +90,12 @@ Options: -f requires as argument a regular expression matching
             to cut all n-grams that occur in only one document, the
             argument '1' should be given (no quotes necessary as this
             does not contain meta characters)
+         -i intelligible name: uses the last number of the freqency cutoff
+            regular expression (supplied via -f), rather than the whole
+            expression, in naming the output file. For this to work a
+            number (not range of numbers) must be provided as the last
+            element in the regular expression, i.e. for all below 11 it
+            would be '([1-9]|10|11)' rather than '([1-9]|1[01])'.
          -a analog to -f and -d, but applied to the score of association
             measures (if listed). use only integers, it will cut the
             integers AND following decimals,
@@ -94,6 +103,8 @@ Options: -f requires as argument a regular expression matching
          -n N restricts the cutoff to n-grams of size N. This is useful if
             a list with different lengths of n-grams needs to have length-
             specific cutoffs applied.
+         -p SEP provide the separator character used to separate elements of
+            n-grams in the list (if the script cannot guess it).
 "
 }
 
@@ -130,7 +141,7 @@ output_filename=$(echo "$1$add$count")
 }
 
 # analyse options
-while getopts ha:f:d:n:p:vV opt
+while getopts ha:f:d:in:p:vV opt
 do
 	case $opt	in
 	h)	help
@@ -145,6 +156,8 @@ do
 	d)	doc=$OPTARG
 		d=given
 		;;
+	i)	intelligible=true
+		;;
 	n)	nsize_restriction=$OPTARG
 		;;
 	p)	separator=$OPTARG
@@ -152,7 +165,7 @@ do
 	v)	verbose=true
 		;;
 	V)	echo "$(basename $0)	-	version $version"
-		echo "Copyright (c) 2011-2013 Andreas Buerki"
+		echo "Copyright (c) 2011-2014 Andreas Buerki"
 		echo "licensed under the EUPL V.1.1"
 		exit 0
 		;;
@@ -271,14 +284,18 @@ for arg in $@
 				
 				if [ -z "$nsize_restriction" ]; then
 					# make name for output file
-					add_to_name $arg.cut.$nfreq
+					if [ "$intelligible" == true ]; then
+						add_to_name $arg.cut.$(echo $nfreq | sed 's/.*|\([[:digit:]]*\))/\1/')
+					else
+						add_to_name $arg.cut.$nfreq
+					fi
 					# execute desired cutoff
-					cat $arg | grep -E -v "$separator	$nfreq$|^[0-9]*$" > $output_filename
+					grep -E -v "$separator	$nfreq$|^[0-9]*$" $arg > $output_filename
 				else
 					# make name for output file
 					add_to_name $arg.cut.$nfreq.$nsize_restriction-grams
 					# execute desired cutoff
-					for line in $(cat $arg | sed 's/	/•/g'); do
+					for line in $(sed 's/	/•/g' $arg); do
 #						nsize=$(echo $line | awk '{c+=gsub(s,s)}END{print c}' s='<>')
 						if [ $nsize -eq $nsize_restriction ] && [ -n "$(echo $line | egrep "$separator•$nfreq$")" ]; then
 							:
@@ -286,7 +303,7 @@ for arg in $@
 							echo $line | sed 's/•/	/g' >> $SCRATCHDIR/tmp.lst
 						fi
 					done
-					cat $SCRATCHDIR/tmp.lst | grep -E -v "^[0-9]*$" > $output_filename
+					grep -E -v "^[0-9]*$" $SCRATCHDIR/tmp.lst > $output_filename
 				fi
 				
 			# case 2	
@@ -303,12 +320,16 @@ for arg in $@
 				if [ "$d" = "given" ]; then
 					if [ -z "$nsize_restriction" ]; then
 						# make name for output file
+						if [ "$intelligible" == true ]; then
+						add_to_name $arg.cut.$(echo $nfreq | sed 's/.*\|\([[:digit:]]*\))/\1/').$doc
+					else
 						add_to_name $arg.cut.$nfreq.$doc
+					fi
 						# execute desired cutoffs
-						cat $arg | grep -E -v "$separator	$nfreq	|$separator	[0-9]*	$doc$|^[0-9]*$" > $output_filename
+						grep -E -v "$separator	$nfreq	|$separator	[0-9]*	$doc$|^[0-9]*$" $arg > $output_filename
 					else
 						# execute desired cutoff
-						for line in $(cat $arg | sed 's/	/•/g'); do
+						for line in $(sed 's/	/•/g' $arg); do
 #							nsize=$(echo $line | awk '{c+=gsub(s,s)}END{print c}' s='<>')
 							if [ $nsize -eq $nsize_restriction ] && [ -n "$(echo $line | sed 's/•/	/g' | egrep "$separator	$nfreq	|$separator	[0-9]*	$doc$|^[0-9]*$")" ]; then
 								:
@@ -326,14 +347,18 @@ for arg in $@
 					# no doc-cutoff specified
 					if [ -z "$nsize_restriction" ]; then					
 						# make name for output file
+						if [ "$intelligible" == true ]; then
+						add_to_name $arg.cut.$(echo $nfreq | sed 's/.*\|\([[:digit:]]*\))/\1/')
+					else
 						add_to_name $arg.cut.$nfreq
+					fi
 						# execute desired cutoffs
-						cat $arg | grep -E -v "$separator	$nfreq	|^[0-9]*$" > $output_filename
+						grep -E -v "$separator	$nfreq	|^[0-9]*$" $arg > $output_filename
 					else
 						# make name for output file
 						add_to_name $arg.cut.$nfreq.$nsize_restriction-grams
 						# execute desired cutoff
-						for line in $(cat $arg | sed 's/	/•/g'); do
+						for line in $(sed 's/	/•/g' $arg); do
 #							nsize=$(echo $line | awk '{c+=gsub(s,s)}END{print c}' s='<>')
 							if [ $nsize -eq $nsize_restriction ] && [ -n "$(echo $line | sed 's/•/	/g' | egrep "$separator	$nfreq	|^[0-9]*$")" ]; then
 								:
@@ -364,14 +389,14 @@ for arg in $@
 				fi
 				# make name for output file
 				add_to_name $arg.cut.$nfreq.$doc
-				cat $arg | grep -E -v "$separator	$nfreq	|$separator	[0-9]*	$doc	[TF]$|^[0-9]*$" > $output_filename
+				grep -E -v "$separator	$nfreq	|$separator	[0-9]*	$doc	[TF]$|^[0-9]*$" $arg > $output_filename
 				else # n-gram rank stats freq
 				if [ "$verbose" == "true" ]; then
 					echo "rank stats freq list recognised"
 				fi
 				# make name for output file
 				add_to_name $arg.cut.$nfreq.$score
-				cat $arg | grep -E -v "$separator	[0-9]*	[0-9]*\.[0-9]*	$nfreq$|$separator	[0-9]*	$score\.[0-9]*" > $output_filename
+				grep -E -v "$separator	[0-9]*	[0-9]*\.[0-9]*	$nfreq$|$separator	[0-9]*	$score\.[0-9]*" $arg > $output_filename
 				fi
 				
 			elif [ $(tail -n 1 $arg | awk -v RS=" " 'END {print NR - 1}') -eq 3 ] ; then # if space-delimited with 3 spaces
@@ -391,14 +416,14 @@ for arg in $@
 				fi
 				# make name for output file
 				add_to_name $arg.cut.$nfreq.$doc
-				cat $arg | grep -E -v "$separator $nfreq |$separator [0-9]* $doc	[TF]$|^[0-9]*$" > $output_filename
+				grep -E -v "$separator $nfreq |$separator [0-9]* $doc	[TF]$|^[0-9]*$" $arg > $output_filename
 				else # n-gram rank stats freq
 				if [ "$verbose" == "true" ]; then
 					echo "n-gram rank stats freq list recognised"
 				fi
 				# make name for output file
 				add_to_name $arg.cut.$nfreq.$score
-				cat $arg | grep -E -v "$separator [0-9]* [0-9]*\.[0-9]* $nfreq$|$separator [0-9]* $score\.[0-9]*" > $output_filename
+				grep -E -v "$separator [0-9]* [0-9]*\.[0-9]* $nfreq$|$separator [0-9]* $score\.[0-9]*" $arg > $output_filename
 				fi
 			
 			elif [ $(head -1 $arg | awk -v RS="	" 'END {print NR - 1}') -eq 4 ] ; then # n-gram rank stats freq doc
@@ -414,7 +439,7 @@ for arg in $@
 				
 				# make name for output file
 				add_to_name $arg.cut.$nfreq.$doc.$score
-				cat $arg | grep -E -v "$separator	[0-9]*	[0-9]*\.[0-9]*	$nfreq	|$separator	[0-9]*	[0-9]*\.[0-9]*	[0-9]*	$doc$|$separator	[0-9]*	$score\.[0-9]*" > $output_filename
+				grep -E -v "$separator	[0-9]*	[0-9]*\.[0-9]*	$nfreq	|$separator	[0-9]*	[0-9]*\.[0-9]*	[0-9]*	$doc$|$separator	[0-9]*	$score\.[0-9]*" $arg > $output_filename
 				
 			elif [ $(head -1 $arg | awk -v RS=" " 'END {print NR - 1}') -eq 4 ] ; then # n-gram rank stats freq doc, space delimited
 				if [ "$verbose" == "true" ]; then
@@ -428,7 +453,7 @@ for arg in $@
 				
 				# make name for output file
 				add_to_name $arg.cut.$nfreq.$doc.$score
-				cat $arg | grep -E -v "$separator [0-9]* [0-9]*\.[0-9]* $nfreq |$separator [0-9]* [0-9]*\.[0-9]* [0-9]* $doc$|$separator [0-9]* $score\.[0-9]*" > $output_filename
+				grep -E -v "$separator [0-9]* [0-9]*\.[0-9]* $nfreq |$separator [0-9]* [0-9]*\.[0-9]* [0-9]* $doc$|$separator [0-9]* $score\.[0-9]*" $arg > $output_filename
 				
 			else
 				echo "input list format not recognised: $(head -n 1 $arg)" >&2

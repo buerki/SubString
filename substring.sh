@@ -1,8 +1,10 @@
 #!/bin/bash -
 
 ##############################################################################
-# substring.sh (c) Andreas Buerki 2011, licensed under the EUPL V.1.1.
-version="0.9"
+# substring.sh 
+copyright="Copyright (c) 2011-2014 Andreas Buerki"
+# licensed under the EUPL V.1.1.
+version="0.9.4"
 ####
 # DESCRRIPTION: performs frequency consolidation among different length n-grams
 #				for options see -h
@@ -33,12 +35,17 @@ version="0.9"
 # 05 May 2012
 # (0.9)			added -n and -z option, removed -m option, adjusted help
 # 25 Nov 2013	programme now handles n-gram constituent separators flexibly
-# (0.9.1)		<> · and _ are recognised automatically, other can be specified
+# (0.9.1)		<> · and _ are recognised automatically, or can be specified
 #				using the -p option
+# 27 Dec 2013	fixed an issue with reporting unexpected format if underscores
+# (0.9.2)		are present in the data
+# 18 Sep 2014	efficiency improvements, added ability to include word lists as
+# (0.9.4)		shortest list in consolidation.
 
 
-
+#############################################
 # define help function
+#############################################
 help ( ) {
 	echo "
 Usage:    $(basename $0) [OPTIONS] [-u uncut_list]+ FILE+
@@ -65,14 +72,15 @@ getch ( ) {
 	stty $OLD_STTY 
 }
 
+
+#############################################
 # define add_to_name function
-add_to_name ( ) {
-#####
 # this function checks if a file name (given as argument) exists and
 # if so appends a number at the end of the name so as to avoid overwriting 
 # existing files of the name as in the argument or any with the same name as the 
 # argument plus an incremented number count appended.
-####
+#############################################
+add_to_name ( ) {
 
 count=
 if [ -a $1 ]; then
@@ -91,17 +99,19 @@ output_filename=$(echo "$1$add$count")
 }
 
 
+#############################################
 # define rename_to_tmp function
 # this function renames all the lists given as arguments into the N.lst format
+# and save them in $SCRATCHDIR
+#############################################
 rename_to_tmp ( ) {
 # RENAME LISTS
-	if [ "$verbose" == "true" ]; then
-		echo "selecting lists"
-	fi
+if [ "$verbose" == true ]; then
+	echo "selecting lists"
+fi
 
-	# create a copy of each argument list in the simple N.lst format
-	for file in $@
-	do
+# create a copy of each argument list in the simple N.lst format
+for file in $@; do
 		# extract n of n-gram list
 		nsize=$(head -1 $file | awk '{c+=gsub(s,s)}END{print c}' s="$separator")
 		# if no n-size was detected, set $nsize to 0
@@ -110,12 +120,15 @@ rename_to_tmp ( ) {
 		fi
 		#echo $nsize
 		# create a copy named N.lst if N is more than 1
-		if [ $nsize -gt 1 ]; then
-			if [ "$verbose" == "true" ]; then
+		if [ $nsize -gt 0 ]; then
+			if [ "$verbose" == true ]; then
 				echo $nsize.lst
 			fi
-			# replace any n-gram initial hyphens with 'HYPH'
-			sed 's/^-/HYPH/g' < $file > $SCRATCHDIR/$nsize.lst
+			# create variable with all list names
+			all_cut_lists+=" $nsize.lst "
+			# replace special characters to avoid problems later
+			# and replace tab with dot (.)
+			sed -e 's/\-/HYPH/g' -e 's/\./DOT/g' -e 's=/=SLASH=g' -e "s/'/APO/g" -e 's/\`//g' -e 's/(/LBRACKET/g' -e 's/)/RBRACKET/g' -e 's/\*/ASTERISK/g' -e 's/+/PLUS/g' -e 's/	/./g' $file > $SCRATCHDIR/$nsize.lst
 			# count the number of lists copied
 			(( number_of_lists += 1 ))
 			
@@ -127,24 +140,28 @@ rename_to_tmp ( ) {
 		else
 			:
 		fi
-	done
+done
 }
 
 
+#############################################
 # define prep_stage function
 # this function uses uncut (or less severely cut) versions of the input
 # lists to improve the accuracy of the frequency consolidation
+# it takes as
+# argument 1 an uncut list of size N and as
+# argument 2 a cut list of size N-1
+#############################################
 prep_stage ( ) {
 
-# put name of first arg in variable uncut_list and shift args
-uncut_list=$1
+# put first arg in variable uncut_list, its name in uncut_name and shift args
+uncut_list=$(sed -e 's/\-/HYPH/g' -e 's/\./DOT/g' -e 's=/=SLASH=g' -e "s/'/APO/g" -e 's/\`//g' -e 's/(/LBRACKET/g' -e 's/)/RBRACKET/g' -e 's/\*/ASTERISK/g' -e 's/+/PLUS/g' -e 's/	/./g' $1)
+uncut_name=$1
 shift
 
 
 #check that nsize of first argument is as expected
-if [ "$(head -1 $1 | awk '{c+=gsub(s,s)}END{print c}' s="$separator")" == "$start_list" ]; then
-	:
-else
+if [ "$(head -1 $1 | awk '{c+=gsub(s,s)}END{print c}' s="$separator")" != "$start_list" ]; then
 	echo "unexpected format in $1"
 	exit 1
 fi
@@ -156,17 +173,32 @@ total=$(cat $1 | wc -l)
 current=0
 
 # inform user
-if [ "$verbose" == "true" ]; then
-	echo "looking for potentialy missing superstrings"
-	echo -n "processing line $current of $total"
+if [ "$verbose" == true ]; then
+	echo "looking to restore necessary superstrings from $uncut_name ..."
+#	echo -n "processing line $current of $total"
 fi
 
+# check if running under MacOS and if so use more efficient variant
+if [ $(uname -s) == Darwin ]; then
+	command1="cut -d "\$short_sep" -f 1-\$extent"
+	command2='$(echo $(echo $left | cut -d "$short_sep" -f 1)$separator$line)'
+else
+	command1='egrep -o "([^$short_sep]*$short_sep){$extent}" | sed "s/$short_sep$//g"'
+	command2='$(echo $left | sed "s/^\([^$short_sep]*·\).*/\1/")$line'
+fi
 
-for line in $(sed 's/	.*//g' < $1) # line without frequencies
-	do
+if [ "$diagnostic" == true ]; then
+	add_to_name superstrings.txt; superout="$output_filename"
+	add_to_name transfer.lst; transferout="$output_filename"
+	add_to_name rightcut.txt; rightout="$output_filename"
+	add_to_name leftnew.txt; leftout="$output_filename"
+	echo "diagnostic mode is ON" >&2
+fi
+
+for line in $(cut -d '.' -f 1 $1); do # line without freqs of first cut list
 		
 		# inform user
-		if [ "$verbose" == "true" ]; then
+		if [ "$verbose" == true ] && [ -n $(echo "$current" | grep '00') ]; then
 		if [ "$current" -lt "10" ]; then
 				(( current +=1 ))
 				echo -en "\b\b\b\b\b\b\b\b\b\b\b\b\b\b $current of $total"
@@ -181,122 +213,99 @@ for line in $(sed 's/	.*//g' < $1) # line without frequencies
 				echo -en "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b $current of $total"
 		fi
 		fi
+		
 		# step 1
 		# cut off the rightmost word
 		# put the number of words to keep in the variable $extent
 		# (this would be the n-size of the current list minus 1)
-		extent=$(expr $nsize - 1)
+		extent=$(( $nsize - 1 ))
 
-		right_cut=$(echo $line | cut -d "$short_sep" -f 1-$extent)
+		right_cut="$(echo $line | eval $command1)$short_sep"
+		
+		#right_cut_bar=$(echo $line | egrep -o "([^$short_sep]*$short_sep){$extent}")
+		#if [ $right_cut != $right_cut_bar ]; then
+		#	echo "right cut: $right_cut"
+		#	echo "right cut bar: $right_cut_bar"
+		#fi
+		if [ "$diagnostic" == true ]; then
+			echo "$right_cut" >> $rightout
+		fi
+		
 		
 		# step 2
 		# search for a string with anything as leftmost item, followed by
 		# the string that had its rightmost word cut off
 		# and put the result in the variable 'left_new'
-		left_new=$(grep "$separator$right_cut" $1 | cut -f 1)
+		left_new=$(egrep "$separator$right_cut" $1 | cut -d '.' -f 1)
+		# it's ok not to do egrep "^[^$separator]*$separator$right_cut"
+		# because $1 will be the list that's only one 'n' longer anyway.
 		
-	
-		if [ -n "$(echo $left_new)" ]; then # check if anything was found
+		
+		if [ -n "$left_new" ]; then # check if anything was found
+			
+			if [ "$diagnostic" == true ]; then
+					echo "$left_new" >> $leftout
+			fi
 			
 			# step 3
 			# for each of the lines found,
-			# cobble together the projected superstring (that is: the original line with
-			# the leftmost word of the string with anything as the leftmost item)
-			# and check if it exists in list given as second argument
+			# cobble together the projected superstring 
+			# (that is: the original line with anything as the leftmost item)
+			# and check if it exists in second cut list (i.e. the list of size
+			# n+1)
 			for left in $left_new ; do
 
-				superstring=$(grep $(echo "$(echo $left | cut -d "$short_sep" -f 1)$separator$line") $2)
+				superstring=$(eval echo $command2)
+				
+				#superstring_bar="$(echo $left | egrep -o "[^$short_sep]*")$separator$line"
+				#if [ $superstring != $superstring_bar ]; then
+				#	echo "superstring: $superstring"
+				#	echo "superstring bar: $superstring_bar"
+				#fi
+				if [ "$diagnostic" == true ]; then
+					echo "$superstring" >> $superout
+				fi
 				
 				# step 4
-				# check if superstring was found
-				if [ -n "$(echo $superstring)" ]; then
-					if [ "$hyperverbose" == "true" ]; then
-						echo "superstring $superstring exists"
-					fi
-				else
-					if [ "$hyperverbose" == "true" ]; then
-						echo "hypothetical superstring $(echo "$(echo $left \
-						| cut -d "$short_sep" -f 1)$separator$line") does not exist."
-					fi
+				# if this superstring was not found in second cut list
+				if [ -z "$(egrep "$superstring" $2)" ]; then					
+					# try to find it in the uncut list (background operation)
+					echo "$uncut_list" | egrep "$superstring" >> $2 &
 					
-					# write hypothetical superstrings that could not be found to a list
-					echo "$(echo "$(echo $left | cut -d "$short_sep" -f 1)$separator$line")	not found in $2" \
-					>> $SCRATCHDIR/no_superstring.lst
+					if [ "$diagnostic" == true ]; then
+					 echo "$uncut_list" | egrep "$superstring" >> $transferout &
+					fi
 				fi
 				done
-		fi
-		
-	done
+		fi	
+done
 
-# insert line break on screen
-if [ "$verbose" == "true" ]; then
-	echo " "
+if [ "$verbose" == true ]; then
+	echo ""
 fi
-
-# use uncut list provided to check no_superstring list against
-	if [ "$verbose" == "true" ]; then
-		echo "checking no_superstring.lst against $uncut_list ..."
-	fi
-
-	if [ -a $SCRATCHDIR/no_superstring.lst ]; then
-	for line in $(cut -f 1 $SCRATCHDIR/no_superstring.lst)
-		do		
-			uncut_superstring=$(grep "$line" $uncut_list)
-			
-			if [ -n "$(echo $uncut_superstring)" ]; then
-				echo $uncut_superstring >> $SCRATCHDIR/transfer.lst
-				grep -v "^$line	" $SCRATCHDIR/no_superstring.lst > $SCRATCHDIR/no_superstring.lst.tmp
-				mv $SCRATCHDIR/no_superstring.lst.tmp $SCRATCHDIR/no_superstring.lst
-			fi
-		done
-	else
-		if [ "$verbose" == "true" ]; then
-			echo "no further potential superstrings identifiable."
-		fi
-	fi
-
-
-# add the contents of transfer.lst to $2
-# which should be the list with longer n-grams
-if [ -a $SCRATCHDIR/transfer.lst ]; then
-		if [ "$verbose" == "true" ]; then
-			echo "restoring contents of transfer.lst to $(basename $2) ..."
-		fi
-		# take the contents of transfer.lst and restore the tabs
-		# that were converted into spaces during processing
-		# then add it to $2
-		cat $SCRATCHDIR/transfer.lst | sed 's/ /	/g' >> $2
-fi
-
-# remove no_superstring.lst and transfer.lst not to interfere wit next iteration
-rm $SCRATCHDIR/no_superstring.lst 2> /dev/null
-rm $SCRATCHDIR/transfer.lst 2> /dev/null
 }
 
 
 
-
+#############################################
 # define consolidate function
 # this function does the pairwise consolidation of n-gram lists
+#############################################
 consolidate ( ) {
 
-if [ "$verbose" == "true" ]; then
-	# create variables for user feedback
-	total=$(wc -l "$1" | sed 's/^ *\([0-9]*\).*/\1/g')
-	currentline=1
-fi
+#if [ "$verbose" == true ]; then
+#	# create variables for user feedback
+#	total=$(wc -l "$1" | sed 's/^ *\([0-9]*\).*/\1/g')
+#	currentline=1
+#fi
 
 # look at things line by line
-# spaces in the lines need to be got rid of
-# so an underscore is inserted between n-gram, frequency count
-# and document count or other remaining numbers
-for line in $(sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g' -e 's/\//SLASH/g'< "$1")
-	do
+for line in $(cat $1); do
 			# create variable with line frequency of line in argument 1
-			freq1=$(echo $line | cut -d "_" -f 2)
+			freq1=$(echo $line | cut -d '.' -f 2)
 			# create variable with any remaining numbers such as document count
-			if [ "$doc" == "true" ]; then
-				remaining_numbers=$(echo $line | cut -d "_" -f 3-10 | sed -e 's/_/ /g' -e 's/^/ /g')
+			if [ "$doc" == true ]; then
+				remaining_numbers=$(echo $line | cut -d '.' -f 3-10)
 			else
 				remaining_numbers=
 			fi
@@ -306,34 +315,35 @@ for line in $(sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g' -e 's/\//SLASH/g'< "$1")
 			# this must happen in 2 steps to make sure we're not matching
 			# unintended strings
 			
-			# create searchline
-			searchline="$(echo $line | sed 's/_[0-9]*//g')"
+			# create searchline (line without frequencies)
+			searchline="$(echo $line | cut -d '.' -f 1)"
 			
 			# match strings that have words to the right of the search string
-			freq2_right=$(expr $(grep "^$searchline" "$2" | \
-			cut -f 2 | sed 's/^\([0-9]*\)$/\1 +/g') 0)
+			freq2_right=$(( $(grep "^$searchline" "$2" | \
+			cut -d '.' -f 2 | sed 's/^\([0-9]*\)$/\1 +/g') 0 ))
 			
 			# match strings that have words to the left or ON BOTH SIDES of the search string
-			freq2_left_middle=$(expr $(grep "$separator$searchline" "$2" | \
-			cut -f 2 | sed 's/^\([0-9]*\)$/\1 +/g') 0)
+			
+			freq2_left_middle=$(( $(grep "$separator$searchline" "$2" | \
+			cut -d '.' -f 2 | sed 's/^\([0-9]*\)$/\1 +/g') 0 ))
 			
 			# add up the frequencies of all matching strings
-			freq2=$(expr $freq2_right + $freq2_left_middle)
+			freq2=$(( $freq2_right + $freq2_left_middle ))
 		
 			# this is explained as follows: (starting after report to user)
 			# 1 the current line has its freq information cut off
-			# 2 a grep search is done with the remaining line 1 in the list given as
-			#   second argument
+			# 2 a grep search is done with the remaining line 1 in the list
+			#   given as second argument
 			# 3 the result is piped to cut and only the freq is retained
 			# 4 this has a space and a '+' added to it with sed
-			# 5 expr is called to evaluate the expression (a '0' is added at
-			# 6 the end so that the string to be evaluated doesn't end in a plus
-			# 7 the result of the evaluation is retained in the variable freq2
+			# 5 the expression is inside $(( )) to calculate (a '0' is added at
+			#   the end so that the string to be evaluated doesn't end in a plus
+			# 6 the result of the evaluation is retained in the variable freq2
 		
 		
 			# deduct freq from arg 2 line from freq arg 1 line
 			# put the new freq-value into the newfreq variable
-			newfreq=$(expr $freq1 - $freq2)
+			newfreq=$(( $freq1 - $freq2 ))
 			# if there's a problem, print error message
 			if [ -z "$freq1" ]; then
 				echo "ERROR: $line: freq1 is $freq1, freq2 is $freq2" >&2
@@ -348,50 +358,46 @@ for line in $(sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g' -e 's/\//SLASH/g'< "$1")
 			fi
 			
 			# now line 1 and its new frequency are written to a temporary file
-			# unless the frequency is zero or less, in which case the string is not written
-			# unless the -m option was invoked in which case those strings are written
-			# as well
+			# unless the frequency is zero or less, in which case the string is 
+			# not written unless the -m option was invoked in which case those 
+			# strings are written as well
 			
-			# create file so that it is there even if nothing is later written to it
-			touch "$1".tmp
+			# create file so that it is there even if nothing is later written
+			# to it
+			touch $1.tmp
 			
-			if [ "$show_neg_freq" == "true" ] ; then
-				echo $searchline	$newfreq$remaining_numbers >> "$1".tmp
-			elif [ "$show_zero_freq" == "true" ] ; then
+			if [ "$show_neg_freq" == true ] ; then
+				echo $searchline.$newfreq.$remaining_numbers >> $1.tmp
+			elif [ "$show_zero_freq" == true ] ; then
 				if [ $newfreq -ge 0 ]; then
-					echo $searchline	$newfreq$remaining_numbers >> "$1".tmp
+					echo $searchline.$newfreq.$remaining_numbers >> $1.tmp
 				fi
 			else
 				if [ $newfreq -gt 0 ]; then
-					echo $searchline	$newfreq$remaining_numbers >> "$1".tmp
+					echo $searchline.$newfreq.$remaining_numbers >> $1.tmp
 				fi
 			fi
 			
-			((currentline +=1))
+#			((currentline +=1))
 	done
-	
-# the spaces are replaced by tabs and the original list replaced by the temporary file
-sed 's/ /	/g' < "$1".tmp  > "$1"
-rm "$1".tmp
-
-# inform user
-if [ "$verbose" == "true" ]; then
-	echo "complete."
-fi
+# the original list is overwritten with the temporary file
+mv $1.tmp $1
 }
 
 #################################end define functions########################
 
 # analyse options
-while getopts hdfkno:p:u:vVz opt
+while getopts bhdfkno:p:u:vVz opt
 do
 	case $opt	in
+	b)	diagnostic=true
+		;;
 	h)	help
 		exit 0
 		;;
 	d)	doc=true
 		;;
-	f)	freq_sort=true
+	f)	freq_sort="-nrk 2"
 		;;
 	k)	keep_intermediate_files=true
 		;;
@@ -422,7 +428,7 @@ do
 	v)	verbose=true
 		;;
 	V)	echo "$(basename $0)	-	version $version"
-		echo "Copyright (c) 2010-2011 Andreas Buerki"
+		echo "$copyright"
 		echo "licensed under the EUPL V.1.1"
 		exit 0
 		;;
@@ -447,7 +453,8 @@ for list; do
 		if [ -n "$separator" ]; then
 			if [ -n "$(head -1 $list | grep "$separator")" ]; then
 				:
-			# if the list is not empty, produce error
+			# if the separator given is not found and list is not empty,
+			# produce error
 			elif [ -s $list ]; then
 				echo "separator $separator not found in $(head -1 $list) of file $list" >&2
 				exit 1
@@ -458,9 +465,6 @@ for list; do
 		elif [ -n "$(head -1 $list | grep '·')" ]; then
 			separator="·"
 			short_sep="·"
-		elif [ -n "$(head -1 $list | grep '_')" ]; then
-			separator="_"
-			short_sep="_"
 		else
 			echo "unknown separator in $(head -1 $list) of file $list" >&2
 			exit 1
@@ -471,24 +475,25 @@ for list; do
 	fi
 done
 
-# check if uncut list was provided
+# check if all is in order with uncut lists provided
+# first check if uncut list was provided
 if [ -z "$(echo $uncut1)" ]; then
 	# if not, set no_prep_stage to true
 	no_prep_stage=true
-	if [ "$verbose" == "true" ]; then
+	if [ "$verbose" == true ]; then
 		echo "running without preparatory stage"
 	fi
-	# if uncut list provided, check if (first) uncut list exists and is greater than 0
+# if uncut list provided, check if (first) uncut list exists and is not empty
 elif [ -s $uncut1 ]; then
 	# check n of uncut lists
-	if [ "$verbose" == "true" ]; then
+	if [ "$verbose" == true ]; then
 		echo "checking n of uncut lists"
 	fi
 	i="$number_of_uncut_lists"
 	while [ $i -gt 0 ]; do
 		if [ -s $(eval echo \$uncut$i) ]; then
 			eval nsize_u$i=$(head -1 $(eval echo \$uncut$i) | awk '{c+=gsub(s,s)}END{print c}' s="$separator")
-			if [ "$verbose" == "true" ]; then
+			if [ "$verbose" == true ]; then
 				echo -n "$(eval echo \$nsize_u$i) "
 			fi
 		else
@@ -500,9 +505,9 @@ elif [ -s $uncut1 ]; then
 
 	# check if uncut lists are consecutive with regard to n-size
 	i="$number_of_uncut_lists"
-	im1=$(expr $number_of_uncut_lists - 1 )
+	im1=$(( $number_of_uncut_lists - 1 ))
 	while [ $im1 -gt 0 ]; do
-		if [ $(eval echo \$nsize_u$i) -eq $(expr $(eval echo \$nsize_u$im1) + 1) ]; then
+		if [ $(eval echo \$nsize_u$i) -eq $(( $(eval echo \$nsize_u$im1) + 1 )) ]; then
 			(( i -= 1 ))
 			(( im1 -= 1 ))
 		else
@@ -511,15 +516,15 @@ elif [ -s $uncut1 ]; then
 			exit 1
 		fi
 	done
-	if [ "$verbose" == "true" ]; then
+	if [ "$verbose" == true ]; then
 		echo "... test passed"
 	fi
 	
 	# establish n-size of first uncut list 
 	# and report error if unsuitable
 	uncutnsize=$(head -1 $uncut1 | awk '{c+=gsub(s,s)}END{print c}' s="$separator")
-	if [ "$uncutnsize" -lt 3 ]; then
-		echo 'Error: the first uncut list must be a list of n-grams such that n > 2' >&2
+	if [ "$uncutnsize" -lt 4 ]; then
+		echo 'Error: the first uncut list must be a list of 4-grams or longer n-grams' >&2
 		exit 1
 	fi
 else
@@ -528,27 +533,24 @@ else
 	exit 1
 fi
 
-# put directory where input files are into input_dir
-if [ -z "$dirname $1" ]; then
-	input_dir=$(pwd)
-else
-	input_dir=$(dirname $1)
-fi
+# put directory where the first input file is into input_dir
+input_dir=$(dirname $1)
 
 # RENAME n-gram lists into N.lst format and put them in the SCRATCHDIR
+# they will also have tabs converted to dots
 rename_to_tmp $@
 
 # check if frequency information is of format n<>gram<>	00[	00]
-if [ "$verbose" == "true" ]; then
+if [ "$verbose" == true ]; then
 	echo "checking list formats..."
 fi
-for listnumber in $(eval echo {2..$(expr $number_of_lists + 1)}); do
-	if [ "$verbose" == "true" ]; then
-		echo "checking $listnumber.lst ..."
+for listnumber in $all_cut_lists; do
+	if [ "$verbose" == true ]; then
+		echo "checking $listnumber ..."
 	fi
-	if [ -n "$(head -1 $SCRATCHDIR/$listnumber.lst | sed 's/	/_/g' | cut -d '_' -f 4)" ]; then
-		echo "CAUTION: $listnumber.lst is not of expected format:"
-		echo "format is: $(head -1 $SCRATCHDIR/$listnumber.lst)"
+	if [ -n "$(head -1 $SCRATCHDIR/$listnumber | cut -d '.' -f 4)" ]; then
+		echo "CAUTION: $listnumber is not of expected format:"
+		echo "format is: $(head -1 $SCRATCHDIR/$listnumber)"
 		echo "expected format is: n$(echo $separator)gram$(echo $separator)	0[	0]"
 		echo "continue? (Y/N)"
 		getch
@@ -561,6 +563,16 @@ for listnumber in $(eval echo {2..$(expr $number_of_lists + 1)}); do
 	fi
 done
 
+# check if 1.lst is present and if so, if it's empty
+if [ -e $SCRATCHDIR/1.lst ]; then
+	if [ -s $SCRATCHDIR/1.lst ]; then
+		:
+	else
+		echo "ERROR: 1.lst is empty" >&2
+		exit 1
+	fi
+fi
+
 # check if at least 2 lists were supplied and warn if more than 16 were supplied
 if [ $number_of_lists -lt 2 ]; then
 	echo "Error: please supply at least two valid n-gram lists" >&2
@@ -568,17 +580,22 @@ if [ $number_of_lists -lt 2 ]; then
 	rm -r $SCRATCHDIR
 	exit 1
 elif [ $number_of_lists -gt 16 ]; then
-	echo "Warning: over 16 n-gram lists supplied, this will take time" >&2
+	echo "Warning: over 16 n-gram lists supplied, this will take a long time" >&2
 fi
 
 # check if lists are consecutive with regard to n-size
-if [ "$verbose" == "true" ]; then
+if [ "$verbose" == true ]; then
 	echo "checking whether n of n-gram lists are consecutive"
 fi
-n=$(expr $number_of_lists + 1)
+# depending on whether a 1-gram list exists, set n to correct number
+if [ -e $SCRATCHDIR/1.lst ]; then
+	n=$number_of_lists
+else
+	n=$(( $number_of_lists + 1 ))
+fi
 while [ $n -gt 1 ]; do
 	if [ -s $SCRATCHDIR/$n.lst ]; then
-		if [ "$verbose" == "true" ]; then
+		if [ "$verbose" == true ]; then
 			echo -n "$n "
 		fi
 		(( n -= 1 ))
@@ -588,20 +605,27 @@ while [ $n -gt 1 ]; do
 		exit 1
 	fi
 done
-if [ "$verbose" == "true" ]; then
+if [ "$verbose" == true ]; then
 	echo "... test passed"
 fi
 
 # if prep stage is requested,
-# check that the greatest n of uncut lists is at most n of cut lists +1 and at least n
-if [ "$no_prep_stage" == "true" ]; then
-	:
+# check that the greatest n of uncut lists is at most n of highest cut list +1 and at least n of the highest n cut list
+if [ "$no_prep_stage" == true ]; then
+	if [ "$verbose" == true ]; then
+		echo "running without preparatory stage"
+	fi
 else
-	n=$(expr $number_of_lists + 1)
+	# depending on whether a 1-gram list exists, set n to correct number
+	if [ -e $SCRATCHDIR/1.lst ]; then
+		n=$number_of_lists
+	else
+		n=$(( $number_of_lists + 1 ))
+	fi
 	nu=$(eval echo \$nsize_u$number_of_uncut_lists)
 	if [ $n -eq $nu ]; then
 		:
-	elif [ $(expr $n + 1 ) -eq $nu ]; then
+	elif [ $(( $n + 1 )) -eq $nu ]; then
 		:
 	else
 		# delete reference to uncut list with largest n
@@ -612,28 +636,19 @@ else
 		nu=$(eval echo \$nsize_u$number_of_uncut_lists)
 		if [ $n -eq $nu ]; then
 			:
-		elif [ $(expr $n + 1 ) -eq $nu ]; then
+		elif [ $(( $n + 1 )) -eq $nu ]; then
 			:
 		else
 			echo "Error: the largest n of uncut lists is $nu, the largest n of cut lists is $n"  >&2
 			exit 1
 		fi
 	fi
-fi
-
-if [ "$no_prep_stage" == "true" ]; then
-	if [ "$verbose" == "true" ]; then
-		echo "running without preparatory stage"
-	fi
-else
-
-
 
 ##### starting prep_stage procedure #####
 		
 	# establish which list we are starting from
 	# that is, one smaller than n-size of first uncut list
-	start_list=$(expr $uncutnsize - 1)
+	start_list=$(( $uncutnsize - 1 ))
 		
 	# establish next argument up
 	next_list=$uncutnsize
@@ -659,12 +674,10 @@ else
 			touch $SCRATCHDIR/$next_list.lst
 			(( number_of_lists += 1 ))
 		fi
-		if [ "$verbose" == "true" ]; then
-			echo "running prep_stage $(eval echo \$uncut$uncut_count) \
-			$start_list.lst $next_list.lst"
+		if [ "$verbose" == true ]; then
+			echo "running preparatory stage for $start_list.lst $next_list.lst"
 		fi
-		prep_stage $(eval echo \$uncut$uncut_count) $SCRATCHDIR/$start_list.lst \
-		$SCRATCHDIR/$next_list.lst
+		prep_stage $(eval echo \$uncut$uncut_count) $SCRATCHDIR/$start_list.lst $SCRATCHDIR/$next_list.lst
 		
 		# move uncut counter forward
 		(( uncut_count += 1 ))
@@ -675,15 +688,17 @@ else
 	done
 		
 	# remove any duplicate imports (this can sometimes happen)
-	if [ "$verbose" == "true" ]; then
-		echo "removing duplicates"
-	fi
-	list="$uncutnsize"
-	while [ -a "$SCRATCHDIR/$list.lst" ]; do
-		uniq $SCRATCHDIR/$list.lst > $SCRATCHDIR/$list.lst.alt
-		mv $SCRATCHDIR/$list.lst.alt $SCRATCHDIR/$list.lst
-		(( list += 1 ))
-	done
+#	if [ "$verbose" == true ]; then
+#		echo "removing duplicates"
+#	fi
+#	list="$uncutnsize"
+#	while [ -a "$SCRATCHDIR/$list.lst" ]; do
+#		echo "before: $(wc -l $SCRATCHDIR/$list.lst)"
+#		sort $SCRATCHDIR/$list.lst | uniq > $SCRATCHDIR/$list.lst.alt
+#		mv $SCRATCHDIR/$list.lst.alt $SCRATCHDIR/$list.lst
+#		echo "after: $(wc -l $SCRATCHDIR/$list.lst)"
+#		(( list += 1 ))
+#	done
 		
 fi
 
@@ -705,27 +720,27 @@ fi
 
 # check if we have empty lists and reduce the number of lists by the number
 # of empty lists found, making sure that the lists remain consecutive in
-# n-size
-n=$(expr $number_of_lists + 1)
+# n-size (any applied 1-gram list was already checked)
+
+if [ -e $SCRATCHDIR/1.lst ]; then
+	n=$number_of_lists
+else
+	n=$(( $number_of_lists + 1 ))
+fi
 previous_list_empty=true
 for number in $(eval echo {$n..2});do
 	if [ -s $SCRATCHDIR/$number.lst ]; then
 		previous_list_empty=false
-	elif [ "$previous_list_empty" == "true" ]; then
+	elif [ "$previous_list_empty" == true ]; then
 		rm $SCRATCHDIR/$number.lst
 		((n -= 1))
 		((number_of_lists -= 1))
 	else
-		echo "ERROR: $number.lst is empty, but next larger n-list isn't."
+		echo "ERROR: $number.lst is empty, but next larger n-list isn't." >&2
 		exit 1
 	fi
 done
 
-
-# report to user
-if [ "$verbose" == "true" ]; then
-	echo "$number_of_lists lists to be consolidated"
-fi
 
 # name n-gram lists with the 'argN' variable
 current=1 # create count variable for naming
@@ -739,33 +754,43 @@ for ii in $(ls $SCRATCHDIR/*.lst) # for all lists
 
 # if list with longest n-grams includes more than one number after n-gram,
 # this needs to be removed, unless -d option is active
-if [ "$doc" == "true" ]; then
+if [ "$doc" == true ]; then
 	:
-elif [ -n $(head -1 $(eval echo \$arg$number_of_lists) | cut -f 3) ]; then
-	cut -f 1,2 $(eval echo \$arg$number_of_lists) > $(eval echo \$arg$number_of_lists).alt
+elif [ -n $(head -1 $(eval echo \$arg$number_of_lists) | cut -d '.' -f 3) ]; then
+	cut -d '.' -f 1,2 $(eval echo \$arg$number_of_lists) > $(eval echo \$arg$number_of_lists).alt
 	mv $(eval echo \$arg$number_of_lists).alt $(eval echo \$arg$number_of_lists)
 fi
 
+# at this stage, we'll need to wait for any background processes from the prep stage to finish 
+if [ "$verbose" == true ]; then
+	echo "waiting for processes to complete..."
+fi
+wait
 
 ####### start consolidation #######
 
+# report to user
+if [ "$verbose" == true ]; then
+	echo "$number_of_lists lists to be consolidated"
+fi
+
 # initialise indices
 longlistindex="$number_of_lists"
-longlistminusindex=$(expr $longlistindex - 1)
+longlistminusindex=$(( $longlistindex - 1 ))
 
 # start loops
 until [ 1 -gt $longlistminusindex ]
 do
-	if [ "$verbose" == "true" ]; then
+	if [ "$verbose" == true ]; then
 		echo "---------------------------------------------"
 		echo "consolidating $(basename $(eval echo \$arg$longlistminusindex)) \
 		$(basename $(eval echo \$arg$longlistindex))"
 	fi
 	consolidate $(eval echo \$arg$longlistminusindex) $(eval echo \$arg$longlistindex)
 	
-	secondarylonglistindex=$(expr $longlistindex - 1)
+	secondarylonglistindex=$(( $longlistindex - 1 ))
 	until [ $longlistminusindex -eq $secondarylonglistindex ]; do
-		if [ "$verbose" == "true" ]; then
+		if [ "$verbose" == true ]; then
 			echo "consolidating $(basename $(eval echo \$arg$longlistminusindex)) \
 			$(basename $(eval echo \$arg$secondarylonglistindex))"
 		fi
@@ -780,7 +805,7 @@ done
 # substring function in the following fashion:
 # T = top level, list with largest n
 # TmN = list with n-grams of length top minus N
-# assuming T = 6-grams
+# assuming T = 6-grams, for example, this works out to:
 #
 # 5.lst (Tm1) 6.lst (T)
 # ----------------------------
@@ -807,40 +832,29 @@ outlist=$output_filename
 list_to_print=$number_of_lists
 
 until [ $list_to_print -lt 1 ]; do
-	cat $(eval echo \$arg$list_to_print) >> $SCRATCHDIR/$outlist
+	cat $(eval echo \$arg$list_to_print) >> $SCRATCHDIR/$outlist 
 	(( list_to_print -= 1 ))
 done
-
 # if -d option is active, check and adjust document counts
-if [ "$doc" == "true" ]; then
-	if [ "$verbose" == "true" ]; then
+if [ "$doc" == true ] && [ -n "$(head -1 $SCRATCHDIR/$outlist | cut -d '.' -f 3)" ]; then
+	if [ "$verbose" == true ]; then
 		echo "adjusting document counts..."
 	fi
-	for line in $(sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g' -e 's/\//SLASH/g' < "$SCRATCHDIR/$outlist"); do
+	for line in $(cat $SCRATCHDIR/$outlist); do
 		# check if document count is higher than frequency of n-gram
-		freq="$(echo -n $line | cut -d '_' -f 2)"
-		doccount="$(echo -n $line | cut -d '_' -f 3)"
+		freq="$(echo -n $line | cut -d '.' -f 2)"
+		doccount="$(echo -n $line | cut -d '.' -f 3)"
 		if [ "$freq" -lt "$doccount" ]; then
 			# write n-gram followed by twice the frequency (the second is the new document count)
-			echo "$(echo $line | cut -d '_' -f 1)	$freq	$freq" | sed 's/SLASH/\//g' >> $SCRATCHDIR/$outlist
+			echo "$(echo $line | cut -d '.' -f 1).$freq.$freq" >> $SCRATCHDIR/$outlist
 			# remove old lines
-			echo "^$(echo $line | sed 's/_/	/g')" >> $SCRATCHDIR/lines_to_be_deleted.tmp
+			echo "^$line" >> $SCRATCHDIR/lines_to_be_deleted.tmp
 		fi
 	done
 	grep -v -f $SCRATCHDIR/lines_to_be_deleted.tmp $SCRATCHDIR/$outlist > $SCRATCHDIR/$outlist.alt
 	mv $SCRATCHDIR/$outlist.alt $SCRATCHDIR/$outlist
 fi
 
-		
-
-# sort output list
-if [ "$freq_sort" == "true" ]; then
-	sort -nrk 2 $SCRATCHDIR/$outlist > $SCRATCHDIR/$outlist.sorted
-else
-	sort $SCRATCHDIR/$outlist > $SCRATCHDIR/$outlist.sorted
-fi
-
-# if HYPH appears in a list instead of a real hyphen, replace HYPH with -
 # if -o option is active, output file to specified directory
 # if -v and -o options are off, send list to STOUT so it can be piped
 # if -v option is on, but -o is off, write list to default output file
@@ -848,36 +862,25 @@ if [ -n "$special_outdir" ]; then
 	# check if such a file already exists and change name accordingly
 	add_to_name $special_outdir
 	special_outdir="$output_filename"
-	if [ "$verbose" == "true" ]; then
-		echo "writing output list to $special_outdir."
+	if [ "$verbose" == true ]; then
+		echo "writing output list to $special_outdir"
 	fi
-	if [ -n "$(grep -m 1 HYPH $SCRATCHDIR/$outlist.sorted)" ]; then
-		sed -e 's/HYPH/-/g' -e 's/UNDERSCORE/_/g' -e 's/SLASH/\//g' $SCRATCHDIR/$outlist.sorted > $special_outdir
-	else
-		sed -e 's/UNDERSCORE/_/g' -e's/SLASH/\//g' $SCRATCHDIR/$outlist.sorted > $special_outdir
-	fi
-elif [ "$verbose" == "true" ]; then
-	if [ -n "$(grep -m 1 HYPH $SCRATCHDIR/$outlist.sorted)" ]; then
-		sed -e 's/HYPH/-/g' -e 's/UNDERSCORE/_/g' -e 's/SLASH/\//g' $SCRATCHDIR/$outlist.sorted > $outlist
-	else
-		sed -e 's/UNDERSCORE/_/g' -e 's/SLASH/\//g' $SCRATCHDIR/$outlist.sorted > $outlist
-	fi
-	echo "writing output list to $(pwd)/$outlist."
+	sed -e 's/\./	/g' -e 's/HYPH/-/g' -e 's/DOT/./g' -e 's/SLASH/\//g' -e "s/APO/\'/g"  -e 's/LBRACKET/(/g' -e 's/RBRACKET/)/g' -e 's/PLUS/+/g' -e '/^$/d' $SCRATCHDIR/$outlist | sort $freq_sort > $special_outdir
+	
+elif [ "$verbose" == true ]; then
+	sed -e 's/\./	/g' -e 's/HYPH/-/g' -e 's/DOT/./g' -e 's/SLASH/\//g' -e "s/APO/\'/g"  -e 's/LBRACKET/(/g' -e 's/RBRACKET/)/g' -e 's/PLUS/+/g' -e '/^$/d' $SCRATCHDIR/$outlist | sort $freq_sort > $outlist
+	echo "writing output list to $(pwd)/$outlist"
 else # that is, if neither -v nor -o options are active
 	 # display the result (so it can be piped by the user)
-	if [ -n "$(grep -m 1 HYPH $SCRATCHDIR/$outlist.sorted)" ]; then
-		sed -e 's/HYPH/-/g' -e 's/UNDERSCORE/_/g' -e 's/SLASH/\//g' $SCRATCHDIR/$outlist.sorted
-	else
-		sed -e 's/UNDERSCORE/_/g' -e 's/SLASH/\//g' $SCRATCHDIR/$outlist.sorted
-	fi
+	sed -e 's/\./	/g' -e 's/HYPH/-/g' -e 's/DOT/./g' -e 's/SLASH/\//g' -e "s/APO/\'/g"  -e 's/LBRACKET/(/g' -e 's/RBRACKET/)/g' -e 's/PLUS/+/g' -e '/^$/d' $SCRATCHDIR/$outlist | sort $freq_sort 
 fi
 ######## end of consolidation procedure
 
 # if -k option is active, move intermediate files to a special directory in the pwd
-if [ "$keep_intermediate_files" == "true" ]; then
+if [ "$keep_intermediate_files" == true ]; then
 	add_to_name intermediate_files
 	mkdir $output_filename
-	if [ "$verbose" == "true" ]; then
+	if [ "$verbose" == true ]; then
 		echo "moving intermediate files to $output_filename"
 	fi
 	mv $SCRATCHDIR/* $output_filename/
@@ -894,6 +897,6 @@ if [ -n "$neg_freq_counter" ]; then
 	echo "$neg_freq_counter negative frequencies encountered. see $neg_freq_list_name"  >&2
 fi
 # display time of completion
-if [ "$verbose" == "true" ]; then
+if [ "$verbose" == true ]; then
 	echo "operation completed $(date)."
 fi

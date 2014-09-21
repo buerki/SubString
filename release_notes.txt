@@ -1,3 +1,34 @@
+release notes v. 0.9.4
+**********************
+
+README.txt/README.md:
+- adjusted for changes
+- description for length-adjust.sh added
+
+substring.sh:
+- consolidation down to single words enabled (before it was down to bigrams)
+- fixed some linux-specific issues with coreutil's cut
+- fixed an issue where a warning was issued about unexpected format in lists
+  had n-grams with underscores in them
+- efficiency improved by reducing the number of I/Os
+- improved accuracy during imports at preparatory stage
+
+cutoff.sh:
+- improved efficiency
+- introduced -i option for improved naming of cutoff lists
+
+length-adjust.sh (new):
+- newly added script to adjust lengths of certain n-grams after consolidation
+
+listconv.sh:
+- fixed bug in -n option
+- expanded number of input list formats handled
+
+test_data:
+- updated gold lists to reflect changes to substring.sh
+- new data in example3 that includes word lists
+- new example4
+
 release notes v. 0.9.1
 **********************
 
