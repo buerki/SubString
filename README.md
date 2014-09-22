@@ -50,7 +50,7 @@ The current release of the SubString package contains the following components:
 C. Installation
 ---------------
 
-SubString was tested on MacOS X (v. 10.6 to 10.9) and Ubuntu Linux (versions Xubuntu 9.04 and 10.04), but should run on all platforms on which the bash shell (version 3.2 or higher) is installed. This includes Windows with the [Cygwin](cygwin.com) package installed.
+SubString was tested on MacOS X (v. 10.8 and 10.9) and Ubuntu Linux (version Xubuntu 12.04), but should run on all platforms on which the bash shell (version 3.2 or higher) is installed. This includes Windows with the [Cygwin](cygwin.com) package installed.
 
 Generally, all scripts (i.e. the files ending in .sh) should be placed in a location that is in the user's $PATH variable (or the location should be added to the $PATH variable) so they can be called from the command line. A good place to put the scripts might be /usr/local/bin or $HOME/bin.
 
@@ -283,4 +283,4 @@ G. Copyright, licensing, download
 
 SubString is (c) 2011-2014 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public License) which is an open-source license.
 
-The project resides at [http://buerki.github.com/SubString/](http://buerki.github.com/SubString/) and new versions will be posted there. A mirror is kept at [https://developer.berlios.de/projects/substrd](https://developer.berlios.de/projects/substrd). Suggestions and feedback are welcome. To be notified of new releases, go to https://github.com/buerki/SubString, click on the 'Watch' button and sign in.
+The project resides at [http://buerki.github.com/SubString/](http://buerki.github.com/SubString/) and new versions will be posted there. Suggestions and feedback are welcome. To be notified of new releases, go to https://github.com/buerki/SubString, click on the 'Watch' button and sign in.
