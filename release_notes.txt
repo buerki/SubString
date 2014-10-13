@@ -1,3 +1,21 @@
+release notes v. 0.9.5
+**********************
+
+substring.sh:
+- prep stage processing now makes use of Bash 4's associative arrays – this 
+  enables the processing of far larger amounts of data (previous algorythm 
+  still works if no bash 4 is detected)
+- fixed bug introduced in 0.9.4 which resulted in hung processing if the -d
+  option was invoked
+- removed trailing tabs from output lists inadvertently introduced in 0.9.4
+- a few other efficiency improvements
+
+README.txt/README.md:
+- adjusted for changes
+
+test_data:
+- updated gold lists to reflect changes to substring.sh
+
 release notes v. 0.9.4
 **********************
 

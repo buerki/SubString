@@ -1,8 +1,8 @@
 ![alt](icon.png)
-SubString v0.9.4 
+SubString v0.9.5 
 ================
 
-The SubString package is a set of Unix Shell scripts used to consolidate frequencies of word n-grams of various different n (i.e. word n-grams of different lengths). In the process, the frequencies of substrings are reduced by the frequencies of their superstrings and a consolidated list with n-grams of different length is produced without an inflation of the overall count. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word sequences and other phraseological phenomena.
+The SubString package is a set of Unix shell scripts used to consolidate frequencies of word n-grams of various different n (i.e. word n-grams of different lengths). In the process, the frequencies of substrings are reduced by the frequencies of their superstrings and a consolidated list with n-grams of different length is produced without an inflation of the overall count. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word sequences and other phraseological phenomena.
 
 A. Frequency Consolidation
 --------------------------
@@ -50,15 +50,20 @@ The current release of the SubString package contains the following components:
 C. Installation
 ---------------
 
-SubString was tested on MacOS X (v. 10.8 and 10.9) and Ubuntu Linux (version Xubuntu 12.04), but should run on all platforms on which the bash shell (version 3.2 or higher) is installed. This includes Windows with the [Cygwin](cygwin.com) package installed.
+SubString was tested on MacOS X (v. 10.8 and 10.9), Ubuntu Linux (version Xubuntu 14.04) and Cygwin (version 1.7.30), but should run on all platforms on which a bash shell is installed. This includes Windows with the [Cygwin](cygwin.com) package installed. For efficient processing of larger amounts of data, bash v. 4 is necessary (although the software will substitute a slower algorithm if only bash v. 3 is available).[^1]
+[^1]: Most recent operating system versions have bash v. 4 installed as standard, but MacOS X has bash v. 3.2 installed as standard. Bash v. 4 can be installed using [MacPorts](http://www.macports.org), [Homebrew](http://brew.sh) or similar and then the new version would either need to be put in the directory `/bin` (replacing the old version) or the first line of the `substring.sh` script would need adjusting to point to the new version of bash (if installed via MacPorts, the new line would read `#!/opt/local/bin/bash` instead of `#!/usr/bin/env bash`).
 
 Generally, all scripts (i.e. the files ending in .sh) should be placed in a location that is in the user's $PATH variable (or the location should be added to the $PATH variable) so they can be called from the command line. A good place to put the scripts might be /usr/local/bin or $HOME/bin.
 
-Detailed instructions of how to do this are given here for MacOS and Ubuntu:
+Detailed instructions of how to do this are given here:
 
 1. open the Terminal application 
+
       MacOS X: in Applications/Utilities
+      
       Ubuntu Linux: via menu Applications>Accessories>Terminal
+      
+      Cygwin: via the link on the desktop to Cygwin Terminal
 2. type: `mkdir /usr/local/bin`	(it may say 'File exists', that's fine)
 3. type: `echo $PATH` (if you can see /usr/local/bin somewhere in the
       output, move to step 8, if not carry on with the next step)
@@ -174,7 +179,8 @@ substring.sh now takes the input lists, consolidates them and displays the conso
 
 		substring.sh -f 2-gram.lst 3-gram.lst 4-gram.lst
 
-Now the n-grams appear in the order of frequency. To see processing information, the -v option can be invoked. While the -v option is active, the result will not be displayed on screen. Instead, the result is put in an output file in the current working directory: 2.lst-4.lst.substrd. The default name for the consolidated list ends in .substrd, but depending on the input lists, the preceding part of the name will be different. It is possible to specify where the output list should go and how it should be named by invoking the -o option followed by output file name (and a path if desired). This holds regardless of whether the -v option is active. Here's an example:
+Now the n-grams appear in the order of frequency. To see processing information, the -v option can be invoked. While the -v option is active, the result will not be displayed on screen. Instead, the result is put in an output file in the current working directory: 2.lst-4.lst.substrd. The default name for the consolidated list ends in .substrd, but depending on the input lists, the preceding part of the name will be different. It is possible to specify where the output list should go and how it should be named by invoking the -o option followed by output file name (and a path if desired). This holds regardless of whether the -v option is active. Here's an example: (the $HOME/Desktop directory will not work under Cygwin; use something like `./OUT.lst` instead to place the ouput file in the current directory.)
+
 	
 	substring.sh -vo $HOME/Desktop/OUT.lst 2-gram.lst 3-gram.lst 4-gram.lst
 	
@@ -187,14 +193,15 @@ A more complex example is the following. Input lists for this example are provid
 
 		substring.sh -vf 2-grams.cut.9 3-grams.cut.9 4-grams.cut.9 5-grams.cut.9 6-grams.cut.9 7-grams.cut.9
 	
-substring.sh takes longer to process the lists this time because the amount of data is larger (lists are based on about 120,000 words of text). The output (the .substrd file) is again in the current directory. The output list will not contain any 7-grams because there are none above the chosen cutoff of 9 (the list 7-grams.cut.9 is in fact empty) and there is only one 6-gram above the cutoff. The list produced should be identical to `2.lst-6.lst.substrd-GOLD1` found in the directory example2.[^1]
-[^1]: Depending on the settings of locale on each machine, the sort order of n-grams might differ, but the same n-grams will be listed with the same frequencies. The consolidation will have produced some n-grams with frequencies below 10. To make sure the list only contains n-grams with a frequency of at least 10, cutoff.sh can be used to remove any n-grams below this frequency. An even better way to deal with n-grams below cutoff is to use the programme length-adjust.sh (see below). 
+substring.sh takes longer to process the lists this time because the amount of data is larger (lists are based on about 120,000 words of text). The output (the .substrd file) is again in the current directory. The output list will not contain any 7-grams because there are none above the chosen cutoff of 9 (the list 7-grams.cut.9 is in fact empty) and there is only one 6-gram above the cutoff. The list produced should be identical to `2.lst-6.lst.substrd-GOLD1` found in the directory example2.[^3]
+[^3]: Depending on the settings of locale on each machine, the sort order of n-grams are likely to differ, but the same n-grams will be listed with the same frequencies. To get the same re-order the GOLD1 list in the locale of your machine: `sort -nrk 2 NAME_OF_LIST > NAME_OF_LIST.sorted`
+The consolidation will have produced some n-grams with frequencies below 10. To make sure the list only contains n-grams with a frequency of at least 10, cutoff.sh can be used to remove any n-grams below this frequency. An even better way to deal with n-grams below cutoff is to use the programme length-adjust.sh (see below). 
 	
-As mentioned earlier, frequency consolidation can be performed more accurately if the script has access to the unfiltered (or less severely filtered) n-gram lists as well as the filtered lists given as input. Unfiltered lists (or less severely filtered lists) are supplied using the -u option (u stands for 'unfiltered'). Each unfiltered list to be considered needs to be passed separately and the -u option will only accept lists of 4-grams and longer n-grams. Using the example data in example2, the unfiltered lists are passed like this:
+As mentioned earlier, frequency consolidation can be performed more accurately if the script has access to the unfiltered (or less severely filtered) n-gram lists in addition to the filtered lists given as input. Unfiltered lists (or less severely filtered lists) are supplied using the -u option (u stands for 'unfiltered'). Each unfiltered list to be considered needs to be passed separately and the -u option will only accept lists of 4-grams and longer n-grams. Using the example data in example2, the unfiltered lists are passed like this:
 
 	substring.sh -vf -u 4-grams -u 5-grams -u 6-grams -u 7-grams 2-grams.cut.9 3-grams.cut.9 4-grams.cut.9 5-grams.cut.9 6-grams.cut.9 7-grams.cut.9
 	
-The list produced should be identical to `2.lst-7.lst.substrd-GOLD2` found in the directory 'example2'. This list will be slightly different from the previous one. It now contains a few 7-grams (as shown in the file name which is now 2.lst-7.lst.substrd) because some 7-grams were taken from the unfiltered lists and integrated into the results. Again, to make sure we only have n-grams with a frequency of at least 10, cutoff.sh can be used to remove n-grams. When unfiltered (or less severely filtered) lists are supplied, they should be passed so that there is an unfiltered list for each of the filtered input lists from 4-gram lists up: if we supply an unfiltered 4-gram list, we should also supply an unfiltered 5-gram list, 6-gram list, etc. up to the maximum length of filtered n-gram lists supplied to the script. It is recommended that the unfiltered lists supplied are minimally filtered to exclude n-grams with frequency 1. When processing very large amounts of data, it will be more convenient to limit unfiltered lists to n-grams of a minimum frequency of 3 or even more. This can be achieved using the cutoff.sh script to filter unfiltered lists prior to consolidation.
+The list produced should be identical to `2.lst-7.lst.substrd-GOLD2` found in the directory 'example2' (except possibly the list being in a different order, see footnote 2). This list will be slightly different from the previous one. It now contains a few 7-grams (as shown in the file name which is now 2.lst-7.lst.substrd) because some 7-grams were taken from the unfiltered lists and integrated into the results. Again, to make sure we only have n-grams with a frequency of at least 10, cutoff.sh can be used to remove n-grams. When unfiltered (or less severely filtered) lists are supplied, they should be passed so that there is an unfiltered list for each of the filtered input lists from 4-gram lists up: if we supply an unfiltered 4-gram list, we should also supply an unfiltered 5-gram list, 6-gram list, etc. up to the maximum length of filtered n-gram lists supplied to the script. It is recommended that the unfiltered lists supplied are minimally filtered to exclude n-grams with frequency 1. When processing very large amounts of data, it will be more convenient to limit unfiltered lists to n-grams of a minimum frequency of 3 or even more. This can be achieved using the cutoff.sh script to filter unfiltered lists prior to consolidation.
 	
 In the data of example2, the inclusion of unfiltered lists did not alter the result by much. In some cases, especially when processing large amounts of data that were heavily filtered, the provision of additional unfiltered lists can improve the accuracy of the consolidation more notably. However, even with the use of additional unfiltered lists, it is sometimes unavoidable that the frequency consolidation of some n-grams is inaccurate, resulting in them receiving negative frequencies. This is caused by an insufficient resolution of overlapping n-grams and cannot be automatically resolved. In such cases the n-grams concerned are not listed in the output file but instead are written to a special output file named `neg_freq.lst` which is also placed in the current working directory.
 
@@ -202,7 +209,8 @@ So far, we have used 2-grams as the shortest n-grams. One may also wish to conso
 
 	substring.sh -vf -u 4-grams -u 5-grams -u 6-grams -u 7-grams 1-grams.cut.7 2-grams.cut.7 3-grams.cut.7 4-grams.cut.7  5-grams.cut.7 6-grams.cut.7 7-grams.cut.7
 
-The output file created should be idential to `1.lst-5.lst.substrd-GOLD`. For further processing options, type in the following command:
+The output file created should be idential to `1.lst-5.lst.substrd-GOLD` (except possibly the list being in a different order, see footnote 2).
+For further processing options, type in the following command:
 
 	substring.sh -h
 
@@ -211,8 +219,8 @@ The output file created should be idential to `1.lst-5.lst.substrd-GOLD`. For fu
 This programme takes as input fully consolidated lists (i.e. the output of substring.sh) and does two things: 
 
 1. It looks at all the n-grams in the list that feature a frequency below a given cutoff (sensibly this would be the same cutoff as used when producing the input lists to substring.sh) and rather than just getting rid of them (as cutoff.sh would do), it checks if there are substrings in the list with which the below-cutoff n-gram could be combined to reach above-cutoff frequency. For example, `1.lst-5.lst.substrd-GOLD` in example3 contains the 3-gram "der·Schlacht·bei·" (the battle of) with a frequency of 4. This is below the cutoff of 7 and would therefore be eliminated by cutoff.sh. However, there is a substring, the 2-gram "der·Schlacht·" ([of] the battle) in the list with a frequency of 13. Since we are now looking at consolidated n-grams, if we were to just eliminate "der·Schlacht·bei·", we'd lose those 4 instances of "der·Schlacht·" that occur as part of "der·Schlacht·bei·" which would result in a less than accurate frequency for "der·Schlacht·". length-adjust.sh therefore gets rid of "der·Schlacht·bei·", but also adds its frequency to the substring "der·Schlacht·" which then displays a new frequency of 17 (13 + 4).
-2. There are also cases where we would want such a combination of superstring and substring to occur even if the superstring is not below the cutoff frequency. For example, the sequence "for example" is a very frequent one in English. Typically, therefore, an n-gram extraction would yield a number of n-grams containing "for example" in a consolidated list such as the one in (2) below. This is fine for some applications, but in others we would prefer the various extensions of the 2-gram "for·example·" NOT to appear and their frequencies instead be listed under "for·example·" itself. length-adjust.sh therefore reduces extensions off a frequent base if certain conditions are met.[^2]
-[^2]: The specifics of these conditions are customisable using options -[2-9] -b and -s, see `length-adjust.sh -h` for details. 
+2. There are also cases where we would want such a combination of superstring and substring to occur even if the superstring is not below the cutoff frequency. For example, the sequence "for example" is a very frequent one in English. Typically, therefore, an n-gram extraction would yield a number of n-grams containing "for example" in a consolidated list such as the one in (2) below. This is fine for some applications, but in others we would prefer the various extensions of the 2-gram "for·example·" NOT to appear and their frequencies instead be listed under "for·example·" itself. length-adjust.sh therefore reduces extensions off a frequent base if certain conditions are met.[^4]
+[^4]: The specifics of these conditions are customisable using options -[2-9] -b and -s, see `length-adjust.sh -h` for details. 
 These conditions are the following:
 	1. number of extensions: adjustment can only take place if there are at least 6 extensions off a base. In (2), there are 13 extensions off the base.
 	2. frequency ratio base - extension: the frequency of the base must be at least a third of the frequency of base and all extensions together. In (2), the base with a frequency of 1745 accounts for 53% of the total frequency of base and extensions ((1745 + 1547) / 1745), so this hurdle is passed.
@@ -246,8 +254,8 @@ The -o option only adjusts n-grams that are below the frequency cutoff provided.
 
 	length-adjust.sh -oc '([0-7])' 1.lst-5.lst.substrd-GOLD
 
-You should now find a new file named `1.lst-5.lst.substrd-GOLD.adju` in the directory. It contains the length-adjusted list.[^3] 
-[^3]: Since even after length-adjustment there may be some n-grams below cutoff frequency (such as when a combination of superstring and substring occurred but their combined frequency is not above cutoff), it will be necessary to run cutoff.sh as well if all n-grams below cutoff are to be eliminated.
+You should now find a new file named `1.lst-5.lst.substrd-GOLD.adju` in the directory. It contains the length-adjusted list.[^5] 
+[^5]: Since even after length-adjustment there may be some n-grams below cutoff frequency (such as when a combination of superstring and substring occurred but their combined frequency is not above cutoff), it will be necessary to run cutoff.sh as well if all n-grams below cutoff are to be eliminated.
 You will see another new file named `correction-log.txt` which lists all the length-adjustments made.
 
 Using options -[2-9], -b and -s, we can vary the conditions applied to any length adjustment of n-grams that are above cutoff. In directory 'example4', there is a file named `example.lst` which contains the list given in (2) above. As we saw above, the default settings specify that a base must not have a frequency over 1,000 to be corrected. This is a conservative value set to avoid too sweeping an approach to length adjustment. In the case of our data in (2), we want to override these settings by specifying a new value of 2,000 using option -b as follows: (change to the example4 directory before typing this)
@@ -267,20 +275,20 @@ We can adjust the other parameters as well. -[2-9] allows adjusting the threshol
 E. Known Issues
 ---------------
 
-None reported at this time. Issues can be raised at [http://github.com/buerki/SubString/issues](http://github.com/buerki/SubString/issues). This is also the place to make feature requests.
+None reported at this time. Issues can be raised at [http://github.com/buerki/SubString/issues](http://github.com/buerki/SubString/issues). This is also the place to submit feature requests.
 
 
-F. Warning
-----------
 
-SubString is still at beta stage. As article 7 of the EUPL states, the software is a work in progress, which is continuously improved. It is not a finished work and may therefore contain defects or “bugs” inherent to this type of software development.
-For the above reason, the software is provided under the Licence on an “as is” basis and without warranties of any kind concerning it, including without limitation merchantability, fitness for a particular purpose, absence of defects or errors, accuracy, non-infringement of intellectual property rights other than copyright as stated in Article 6 of this Licence.
-This disclaimer of warranty is an essential part of the Licence and a condition for the grant of any rights to the SubString.
-
-
-G. Copyright, licensing, download
+F. Copyright, licensing, download
 ---------------------------------
 
-SubString is (c) 2011-2014 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public License) which is an open-source license.
+SubString is (c) 2011-2014 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public Licence) which is an open-source licence (see the EUPL.pdf file for the full licence).
 
 The project resides at [http://buerki.github.com/SubString/](http://buerki.github.com/SubString/) and new versions will be posted there. Suggestions and feedback are welcome. To be notified of new releases, go to https://github.com/buerki/SubString, click on the 'Watch' button and sign in.
+
+G. Warning
+----------
+
+As article 7 of the EUPL states, the SubString is a work in progress, which is continuously improved. It is not a finished work and may therefore contain defects or “bugs” inherent to this type of software development.
+For the above reason, the software is provided under the Licence on an “as is” basis and without warranties of any kind concerning it, including without limitation merchantability, fitness for a particular purpose, absence of defects or errors, accuracy, non-infringement of intellectual property rights other than copyright as stated in Article 6 of this Licence.
+This disclaimer of warranty is an essential part of the Licence and a condition for the grant of any rights to SubString.
