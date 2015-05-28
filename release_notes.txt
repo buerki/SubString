@@ -1,3 +1,13 @@
+release notes v. 0.9.6
+**********************
+
+Added double-clickable installer for OS X and Linux:
+- OSX_installer.command
+- linux_installer.desktop
+
+README.txt/README.md:
+- adjusted for changes
+
 release notes v. 0.9.5
 **********************
 

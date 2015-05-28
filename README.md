@@ -1,5 +1,5 @@
 ![alt](icon.png)
-SubString v0.9.5 
+SubString v0.9.6 
 ================
 
 The SubString package is a set of Unix shell scripts used to consolidate frequencies of word n-grams of various different n (i.e. word n-grams of different lengths). In the process, the frequencies of substrings are reduced by the frequencies of their superstrings and a consolidated list with n-grams of different length is produced without an inflation of the overall count. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word sequences and other phraseological phenomena.
@@ -45,37 +45,45 @@ The current release of the SubString package contains the following components:
 *	`test_data`        a directory containing test data
 
 *	`EUPL.pdf`         a copy of the European Union Public License under which SubString is licensed.
+*	`OSX_installer.command` double-clickable installer for OS X
 
+*	`linux_installer.desktop` double-clickable installfer for Linux
 
-C. Installation
----------------
-
-SubString was tested on MacOS X (v. 10.8 and 10.9), Ubuntu Linux (version Xubuntu 14.04) and Cygwin (version 1.7.30), but should run on all platforms on which a bash shell is installed. This includes Windows with the [Cygwin](cygwin.com) package installed. For efficient processing of larger amounts of data, bash v. 4 is necessary (although the software will substitute a slower algorithm if only bash v. 3 is available).[^1]
+C. Compatible Systems
+------
+SubString was tested on OS X (v. 10.8 and 10.9), Ubuntu Linux (version Xubuntu 14.04) and Cygwin (version 1.7.30), but should run on all platforms on which a bash shell is installed. This includes Windows with the [Cygwin](cygwin.com) package installed. For efficient processing of larger amounts of data, bash v. 4 is necessary (although the software will substitute a slower algorithm if only bash v. 3 is available).[^1]
 [^1]: Most recent operating system versions have bash v. 4 installed as standard, but MacOS X has bash v. 3.2 installed as standard. Bash v. 4 can be installed using [MacPorts](http://www.macports.org), [Homebrew](http://brew.sh) or similar and then the new version would either need to be put in the directory `/bin` (replacing the old version) or the first line of the `substring.sh` script would need adjusting to point to the new version of bash (if installed via MacPorts, the new line would read `#!/opt/local/bin/bash` instead of `#!/usr/bin/env bash`).
+
+
+D. Installation
+---------------
 
 Generally, all scripts (i.e. the files ending in .sh) should be placed in a location that is in the user's $PATH variable (or the location should be added to the $PATH variable) so they can be called from the command line. A good place to put the scripts might be /usr/local/bin or $HOME/bin.
 
-Detailed instructions of how to do this are given here:
+For OS X and Linux, an installer is provided that takes care of these installation steps. Inside the SubString directory, double-click on `linux_installer` (for Linux) or `OSX_installer` (OS X). This replaces previous versions of the installed files. It may be necessary to log out and log in again before the installation takes effect. The success of the installation can be verified by opening a terminal window and typing the following: `substring.sh -h`. A help message should be displayed.  If the installation  was successful, the rest of this section can be skipped. Depending on the particular system setup, automatic installation might fail. In this case, or if running on Cygwin, the following manual installation instructions should be followed.
 
-1. open the Terminal application 
+Detailed instructions for manual installation:
 
-      MacOS X: in Applications/Utilities
+1. open the Terminal application
+ 
+      OS X: in Applications/Utilities
       
       Ubuntu Linux: via menu Applications>Accessories>Terminal
       
       Cygwin: via the link on the desktop to Cygwin Terminal
-2. type: `mkdir /usr/local/bin`	(it may say 'File exists', that's fine)
-3. type: `echo $PATH` (if you can see /usr/local/bin somewhere in the
-      output, move to step 8, if not carry on with the next step)
-4. type: `cd $HOME`
+2. type: `mkdir $HOME/bin`	(it may say 'File exists', that's fine)
+3. type: `echo $PATH` (if you can see /User/YOURNAME/bin somewhere in the
+      output, move to step 9, if not carry on with the next step)
+4. type: `cd $HOME` and then type `ls .bash_profile` (including the period). If this does NOT produce an error, in the following steps, always use `.bash_profile` where it says `.profile`. If there is an error, the instructions in the following steps can be followed exactly as they are written.
+5. check if the file .bash_profile is present
       type: `cp .profile .profile.bkup` (if it says there no such file,
       that's fine)
 5. type: `vi .profile`
 6. move to an empty line and press the `i` key, then enter the
-      following: `PATH=/usr/local/bin:$PATH`
+      following: `PATH=$HOME/bin:$PATH`
 7. press ESC, then type `:wq!`
 8. move into the SubString directory. This can be done by typing `cd ` (make sure there is a space after `cd ` but don't press return yet) and then dragging the SubString folder onto the Terminal window and pressing return.
-9. type: `sudo cp *.sh /usr/local/bin` (you will need to enter an admin password)
+9. type: `cp *.sh $HOME/bin` (you will need to enter an admin password)
 
       Done!
 
@@ -89,9 +97,18 @@ The installation can be verified by calling each script's help function for the 
 
 For further tests, you may wish to run SubString on the test data (see next section)
 
+To uninstall, use the terminal to move into the SubString directory (type `cd ` followed by a space, then drop the Substring-X.X.X directory on to the terminal window), then type `OSX_installer.command -u` (for Linux or OS X). Alternatively, manually delete the relevant files from the directory `/Users/YOURNAME/bin` where YOURNAME is the user name.
 
 D. Operation
 ------------
+
+Open the Terminal application if not already open:
+ 
+*  OS X: in Applications/Utilities
+      
+*  Ubuntu Linux: via menu Applications>Accessories>Terminal
+      
+*  Cygwin: via the link on the desktop to Cygwin Terminal
 
 
 **LISTCONV.SH**
@@ -106,8 +123,8 @@ n·gram·	1[	1]
 
 That is, an n-gram (with constituents either delimited by diamonds (<>) or the unicode character interpunct (middle dot)), followed by a tab and the frequency count, optionally followed by another tab and a document count. The listconv.sh script can be used to convert n-gram lists into this format. listconv.sh is able to convert output lists created with the [N-Gram Processor](http://buerki.github.io/ngramprocessor), the [Ngram Statistics Package](http://ngram.sourceforge.net), the [NGramTools](http://homepages.inf.ed.ac.uk/lzhang10/ngram.html) or n-grams lists provided by the [Google Books corpus](http://storage.googleapis.com/books/ngrams/books/datasetsv2.html), although the latter will need previous selection of the relevant data as the same n-grams are listed for many different years.
 
-To convert an n-gram list, simply supply the names of the files to
-be converted as arguments: 
+To convert an n-gram list, supply the names of the files to
+be converted as arguments: (open a terminal window if now yet open)
 
 	listconv.sh FILE+
 
@@ -282,7 +299,7 @@ None reported at this time. Issues can be raised at [http://github.com/buerki/Su
 F. Copyright, licensing, download
 ---------------------------------
 
-SubString is (c) 2011-2014 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public Licence) which is an open-source licence (see the EUPL.pdf file for the full licence).
+SubString is (c) 2011-2015 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public Licence) which is an open-source licence (see the EUPL.pdf file for the full licence).
 
 The project resides at [http://buerki.github.com/SubString/](http://buerki.github.com/SubString/) and new versions will be posted there. Suggestions and feedback are welcome. To be notified of new releases, go to https://github.com/buerki/SubString, click on the 'Watch' button and sign in.
 

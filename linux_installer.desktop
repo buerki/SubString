@@ -1,0 +1,12 @@
+
+[Desktop Entry]
+Version=1.0
+Encoding=UTF-8
+Type=Application
+Name=linux_installer
+Comment=
+Categories=Application;
+Exec=./OSX_installer.command
+Icon=/home/andy/Desktop/SString/icon.png
+Terminal=true
+StartupNotify=false
