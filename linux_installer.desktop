@@ -1,3 +1,4 @@
+#!/usr/bin/env xdg-open
 
 [Desktop Entry]
 Version=1.0
@@ -7,6 +8,6 @@ Name=linux_installer
 Comment=
 Categories=Application;
 Exec=./OSX_installer.command
-Icon=/home/andy/Desktop/SString/icon.png
+Icon=./icon.png
 Terminal=true
 StartupNotify=false

@@ -1,3 +1,14 @@
+release notes v. 0.9.7
+**********************
+
+Added double-clickable installers for Cygwin and a generic installer script:
+- Cygwin_installer.lnk
+- Cygwin64_installer.lnk
+- install.sh
+
+README.pdf/README.md:
+- adjusted for changes
+
 release notes v. 0.9.6
 **********************
 
@@ -5,7 +16,7 @@ Added double-clickable installer for OS X and Linux:
 - OSX_installer.command
 - linux_installer.desktop
 
-README.txt/README.md:
+README.pdf/README.md:
 - adjusted for changes
 
 release notes v. 0.9.5

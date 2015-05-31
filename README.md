@@ -1,5 +1,5 @@
 ![alt](icon.png)
-SubString v0.9.6 
+SubString v0.9.7 
 ================
 
 The SubString package is a set of Unix shell scripts used to consolidate frequencies of word n-grams of various different n (i.e. word n-grams of different lengths). In the process, the frequencies of substrings are reduced by the frequencies of their superstrings and a consolidated list with n-grams of different length is produced without an inflation of the overall count. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word sequences and other phraseological phenomena.
@@ -45,14 +45,15 @@ The current release of the SubString package contains the following components:
 *	`test_data`        a directory containing test data
 
 *	`EUPL.pdf`         a copy of the European Union Public License under which SubString is licensed.
-*	`OSX_installer.command` double-clickable installer for OS X
+*	`install.sh` an installer, uninstaller and path-setting script (this is used for installation, but is not itself installed)
 
-*	`linux_installer.desktop` double-clickable installfer for Linux
 
 C. Compatible Systems
 ------
-SubString was tested on OS X (v. 10.8 and 10.9), Ubuntu Linux (version Xubuntu 14.04) and Cygwin (version 1.7.30), but should run on all platforms on which a bash shell is installed. This includes Windows with the [Cygwin](cygwin.com) package installed. For efficient processing of larger amounts of data, bash v. 4 is necessary (although the software will substitute a slower algorithm if only bash v. 3 is available).[^1]
-[^1]: Most recent operating system versions have bash v. 4 installed as standard, but MacOS X has bash v. 3.2 installed as standard. Bash v. 4 can be installed using [MacPorts](http://www.macports.org), [Homebrew](http://brew.sh) or similar and then the new version would either need to be put in the directory `/bin` (replacing the old version) or the first line of the `substring.sh` script would need adjusting to point to the new version of bash (if installed via MacPorts, the new line would read `#!/opt/local/bin/bash` instead of `#!/usr/bin/env bash`).
+SubString was tested on OS X (v. 10.8 and 10.9), Ubuntu Linux (version Xubuntu 14.04) and Cygwin (version 1.7.30), but should run on all platforms on which a bash shell is installed. This includes Windows with the [Cygwin](cygwin.com) package installed.[^1]
+[^1]: A default installation should be sufficient.
+For efficient processing of larger amounts of data, bash v. 4 is necessary (although the software will substitute a slower algorithm if only bash v. 3 is available).[^2]
+[^2]: Most recent operating system versions have bash v. 4 installed as standard, but MacOS X has bash v. 3.2 installed as standard. Bash v. 4 can be installed using [MacPorts](http://www.macports.org), [Homebrew](http://brew.sh) or similar and then the new version would either need to be put in the directory `/bin` (replacing the old version) or the first line of the `substring.sh` script would need adjusting to point to the new version of bash (if installed via MacPorts, the new line would read `#!/opt/local/bin/bash` instead of `#!/usr/bin/env bash`).
 
 
 D. Installation
@@ -60,7 +61,11 @@ D. Installation
 
 Generally, all scripts (i.e. the files ending in .sh) should be placed in a location that is in the user's $PATH variable (or the location should be added to the $PATH variable) so they can be called from the command line. A good place to put the scripts might be /usr/local/bin or $HOME/bin.
 
-For OS X and Linux, an installer is provided that takes care of these installation steps. Inside the SubString directory, double-click on `linux_installer` (for Linux) or `OSX_installer` (OS X). This replaces previous versions of the installed files. It may be necessary to log out and log in again before the installation takes effect. The success of the installation can be verified by opening a terminal window and typing the following: `substring.sh -h`. A help message should be displayed.  If the installation  was successful, the rest of this section can be skipped. Depending on the particular system setup, automatic installation might fail. In this case, or if running on Cygwin, the following manual installation instructions should be followed.
+Using the supplied installers:
+
+For OS X, (Ubuntu-)Linux and Cygwin, installers are provided. Inside the SubString directory, double-click on `linux_installer` (for Linux), `OSX_installer` (OS X) or `Cygwin_installer`/`Cygwin64_installer` (for Cygwin regular and 64-bit installations).[^3]
+[^3]: If the double-clickable installers fail to run, open a terminal window and run the `install.sh` instead.
+These installers replace previous versions of the installed files. It may be necessary to log out and log in again before the installation takes effect. The success of the installation can be verified by opening a terminal window and typing the following: `substring.sh -h`. A help message should be displayed.  If the installation  was successful, the rest of this section can be skipped. Depending on the particular system setup, automatic installation might fail. In this case, the following manual installation instructions should be followed.
 
 Detailed instructions for manual installation:
 
@@ -97,7 +102,7 @@ The installation can be verified by calling each script's help function for the 
 
 For further tests, you may wish to run SubString on the test data (see next section)
 
-To uninstall, use the terminal to move into the SubString directory (type `cd ` followed by a space, then drop the Substring-X.X.X directory on to the terminal window), then type `OSX_installer.command -u` (for Linux or OS X). Alternatively, manually delete the relevant files from the directory `/Users/YOURNAME/bin` where YOURNAME is the user name.
+To uninstall, open a terminal window then drop the `install.sh` script (located inside the Substring-X.X.X directory) on to the terminal window, then type ` -u` so that the line ends in ` -u` and press ENTER. Alternatively, manually delete the relevant files from the directory `/Users/YOURNAME/bin` where YOURNAME is the user name.
 
 D. Operation
 ------------
@@ -210,8 +215,8 @@ A more complex example is the following. Input lists for this example are provid
 
 		substring.sh -vf 2-grams.cut.9 3-grams.cut.9 4-grams.cut.9 5-grams.cut.9 6-grams.cut.9 7-grams.cut.9
 	
-substring.sh takes longer to process the lists this time because the amount of data is larger (lists are based on about 120,000 words of text). The output (the .substrd file) is again in the current directory. The output list will not contain any 7-grams because there are none above the chosen cutoff of 9 (the list 7-grams.cut.9 is in fact empty) and there is only one 6-gram above the cutoff. The list produced should be identical to `2.lst-6.lst.substrd-GOLD1` found in the directory example2.[^3]
-[^3]: Depending on the settings of locale on each machine, the sort order of n-grams are likely to differ, but the same n-grams will be listed with the same frequencies. To get the same re-order the GOLD1 list in the locale of your machine: `sort -nrk 2 NAME_OF_LIST > NAME_OF_LIST.sorted`
+substring.sh takes longer to process the lists this time because the amount of data is larger (lists are based on about 120,000 words of text). The output (the .substrd file) is again in the current directory. The output list will not contain any 7-grams because there are none above the chosen cutoff of 9 (the list 7-grams.cut.9 is in fact empty) and there is only one 6-gram above the cutoff. The list produced should be identical to `2.lst-6.lst.substrd-GOLD1` found in the directory example2.[^4]
+[^4]: Depending on the settings of locale on each machine, the sort order of n-grams are likely to differ, but the same n-grams will be listed with the same frequencies. To get the same re-order the GOLD1 list in the locale of your machine: `sort -nrk 2 NAME_OF_LIST > NAME_OF_LIST.sorted`
 The consolidation will have produced some n-grams with frequencies below 10. To make sure the list only contains n-grams with a frequency of at least 10, cutoff.sh can be used to remove any n-grams below this frequency. An even better way to deal with n-grams below cutoff is to use the programme length-adjust.sh (see below). 
 	
 As mentioned earlier, frequency consolidation can be performed more accurately if the script has access to the unfiltered (or less severely filtered) n-gram lists in addition to the filtered lists given as input. Unfiltered lists (or less severely filtered lists) are supplied using the -u option (u stands for 'unfiltered'). Each unfiltered list to be considered needs to be passed separately and the -u option will only accept lists of 4-grams and longer n-grams. Using the example data in example2, the unfiltered lists are passed like this:
@@ -236,8 +241,8 @@ For further processing options, type in the following command:
 This programme takes as input fully consolidated lists (i.e. the output of substring.sh) and does two things: 
 
 1. It looks at all the n-grams in the list that feature a frequency below a given cutoff (sensibly this would be the same cutoff as used when producing the input lists to substring.sh) and rather than just getting rid of them (as cutoff.sh would do), it checks if there are substrings in the list with which the below-cutoff n-gram could be combined to reach above-cutoff frequency. For example, `1.lst-5.lst.substrd-GOLD` in example3 contains the 3-gram "der·Schlacht·bei·" (the battle of) with a frequency of 4. This is below the cutoff of 7 and would therefore be eliminated by cutoff.sh. However, there is a substring, the 2-gram "der·Schlacht·" ([of] the battle) in the list with a frequency of 13. Since we are now looking at consolidated n-grams, if we were to just eliminate "der·Schlacht·bei·", we'd lose those 4 instances of "der·Schlacht·" that occur as part of "der·Schlacht·bei·" which would result in a less than accurate frequency for "der·Schlacht·". length-adjust.sh therefore gets rid of "der·Schlacht·bei·", but also adds its frequency to the substring "der·Schlacht·" which then displays a new frequency of 17 (13 + 4).
-2. There are also cases where we would want such a combination of superstring and substring to occur even if the superstring is not below the cutoff frequency. For example, the sequence "for example" is a very frequent one in English. Typically, therefore, an n-gram extraction would yield a number of n-grams containing "for example" in a consolidated list such as the one in (2) below. This is fine for some applications, but in others we would prefer the various extensions of the 2-gram "for·example·" NOT to appear and their frequencies instead be listed under "for·example·" itself. length-adjust.sh therefore reduces extensions off a frequent base if certain conditions are met.[^4]
-[^4]: The specifics of these conditions are customisable using options -[2-9] -b and -s, see `length-adjust.sh -h` for details. 
+2. There are also cases where we would want such a combination of superstring and substring to occur even if the superstring is not below the cutoff frequency. For example, the sequence "for example" is a very frequent one in English. Typically, therefore, an n-gram extraction would yield a number of n-grams containing "for example" in a consolidated list such as the one in (2) below. This is fine for some applications, but in others we would prefer the various extensions of the 2-gram "for·example·" NOT to appear and their frequencies instead be listed under "for·example·" itself. length-adjust.sh therefore reduces extensions off a frequent base if certain conditions are met.[^5]
+[^5]: The specifics of these conditions are customisable using options -[2-9] -b and -s, see `length-adjust.sh -h` for details. 
 These conditions are the following:
 	1. number of extensions: adjustment can only take place if there are at least 6 extensions off a base. In (2), there are 13 extensions off the base.
 	2. frequency ratio base - extension: the frequency of the base must be at least a third of the frequency of base and all extensions together. In (2), the base with a frequency of 1745 accounts for 53% of the total frequency of base and extensions ((1745 + 1547) / 1745), so this hurdle is passed.
@@ -271,8 +276,8 @@ The -o option only adjusts n-grams that are below the frequency cutoff provided.
 
 	length-adjust.sh -oc '([0-7])' 1.lst-5.lst.substrd-GOLD
 
-You should now find a new file named `1.lst-5.lst.substrd-GOLD.adju` in the directory. It contains the length-adjusted list.[^5] 
-[^5]: Since even after length-adjustment there may be some n-grams below cutoff frequency (such as when a combination of superstring and substring occurred but their combined frequency is not above cutoff), it will be necessary to run cutoff.sh as well if all n-grams below cutoff are to be eliminated.
+You should now find a new file named `1.lst-5.lst.substrd-GOLD.adju` in the directory. It contains the length-adjusted list.[^6] 
+[^6]: Since even after length-adjustment there may be some n-grams below cutoff frequency (such as when a combination of superstring and substring occurred but their combined frequency is not above cutoff), it will be necessary to run cutoff.sh as well if all n-grams below cutoff are to be eliminated.
 You will see another new file named `correction-log.txt` which lists all the length-adjustments made.
 
 Using options -[2-9], -b and -s, we can vary the conditions applied to any length adjustment of n-grams that are above cutoff. In directory 'example4', there is a file named `example.lst` which contains the list given in (2) above. As we saw above, the default settings specify that a base must not have a frequency over 1,000 to be corrected. This is a conservative value set to avoid too sweeping an approach to length adjustment. In the case of our data in (2), we want to override these settings by specifying a new value of 2,000 using option -b as follows: (change to the example4 directory before typing this)
