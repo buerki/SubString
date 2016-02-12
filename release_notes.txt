@@ -1,3 +1,28 @@
+release notes v. 0.9.9
+**********************
+
+substring.sh
+- added a menu-based interface
+- moved main processing code to new substring-processor.sh
+
+Added the following auxiliary scripts used by substring.sh
+- consolidate.sh
+- en-filter.sh
+- random_lines.sh
+- TP-filter.sh
+- substring-processor.sh
+
+listconv.sh
+- script was retired as the NGP package now provides suitably formatted input files.
+
+Removed awk commands from all scripts due to compatibility issues with Cygwin in certain configurations
+
+Adjusted the following to reflect above changes
+- install.sh
+- README.pdf/README.md:
+- test_data
+
+
 release notes v. 0.9.7
 **********************
 

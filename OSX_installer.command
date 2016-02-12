@@ -1,3 +1,3 @@
-sourcedir=$(dirname $0)
-cd $sourcedir
-./install.sh
+sourcedir="$(dirname "$0")"
+cd "$sourcedir"
+./src/install.sh
