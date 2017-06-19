@@ -1,3 +1,10 @@
+release notes v. 0.9.9.1
+************************
+
+substring-processor.sh
+- fixed an issue with the progress indicator not advancing during the preparatory stage
+
+
 release notes v. 0.9.9
 **********************
 

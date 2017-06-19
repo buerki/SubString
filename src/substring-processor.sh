@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 ##############################################################################
 # substring.sh 
-copyright="Copyright (c) 2016 Cardiff University, 2011-2014 Andreas Buerki"
+copyright="Copyright (c) 2016-17 Cardiff University, 2011-2014 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version="0.9.9"
+version="0.9.9.1"
 ####
 # DESCRRIPTION: performs frequency consolidation among different length n-grams
 #				for options see -h
@@ -44,7 +44,8 @@ version="0.9.9"
 # (0.9.5)		enable the processing of large amounts of data
 # 09 Jan 2016	renamed script to substring-processor.sh and updated copyright notice,
 # (0.9.7)		replaced use of awk with alternative code due to problems in Cygwin
-
+# 19 Jun 2017	fixed problem with progress counter of prep-stage
+# (0.9.9.1)
 #############################################
 # define help function
 #############################################
@@ -239,12 +240,12 @@ fi
 nsize=$start_list
 # initialise variables
 total=$(wc -l <<< "$short_list")
-current=0
+current=1
 superstring=
 # inform user
 if [ "$verbose" ]; then
 	echo "looking to restore necessary superstrings from $uncut_name ..."
-	echo -n "processing line $current of $total"
+	echo -n "processing line   $current of $total"
 fi
 # check if running under MacOS and if so use more efficient variant
 if [ $(uname -s) == Darwin ]; then
@@ -254,7 +255,6 @@ else
 	command1='egrep -o "([^$short_sep]*$short_sep){$extent}" | sed "s/$short_sep$//g"'
 	command2='$(sed "s/^\([^$short_sep]*·\).*/\1/" <<< "$left")$line'
 fi
-
 if [ "$diagnostic" -gt 2 ]; then
 	add_to_name superstrings.txt; superout="$output_filename"
 	add_to_name transfer.lst; transferout="$output_filename"
@@ -262,26 +262,21 @@ if [ "$diagnostic" -gt 2 ]; then
 	add_to_name leftnew.txt; leftout="$output_filename"
 	echo "diagnostic mode level 3 is ON" >&2
 fi
-
 for line in $(cut -d '.' -f 1 <<< "$short_list"); do # line without freqs of first cut list		
 		# inform user
-		if [ "$verbose" ] && [ "$(grep '00' <<< $current)" ]; then
-		if [ "$current" -lt "10" ]; then
-				(( current +=1 ))
+		if [ "$verbose" ]; then
+		if [ "$(grep '0' <<< $current)" ]; then
+		if [ "$current" -lt "100" ]; then
 				echo -en "\b\b\b\b\b\b\b\b\b\b\b\b\b\b $current of $total"
-		elif [ "$current" -lt "100" ]; then
-				(( current +=1 ))
-				echo -en "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b $current of $total"
 		elif [ "$current" -lt "1000" ]; then
-				(( current +=1 ))
 				echo -en "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b $current of $total"
 		elif [ "$current" -lt "10000" ]; then
-				(( current +=1 ))
 				echo -en "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b $current of $total"
 		else
-				(( current +=1 ))
 				echo -en "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b $current of $total"
 		fi
+		fi
+		(( current +=1 ))
 		fi
 		# step 1
 		# cut off the rightmost word
@@ -344,7 +339,7 @@ $(egrep "$superstring" <<< "$uncut_list")"
 		fi	
 done
 if [ "$verbose" ]; then
-	echo -en "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b                   $total lines processed.           "
+	echo -en "\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b                   $total lines processed.           "
 	echo ""
 fi
 # write to file and tidy up

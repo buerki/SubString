@@ -4,7 +4,7 @@
 copyright="Copyright (c) 2016 Cardiff University, 2015 Andreas Buerki"
 # licensed under the EUPL V.1.1.
 ####
-version="1.5.1"
+version="1.5.2"
 # DESCRRIPTION: lexico-structural filter for English language data
 # define help function
 help ( ) {
@@ -40,6 +40,12 @@ else
 fi
 output_filename=$(echo "$1$add$count")
 }
+#######################
+# define add_windows_returns function
+#######################
+add_windows_returns ( ) {
+sed 's/$//g' $1
+}
 # analyse options
 while getopts dhvV opt
 do
@@ -71,6 +77,18 @@ for file in $@; do
 	fi
 done
 #
+# check what platform we're under
+platform=$(uname -s)
+extended="-r"
+# and make adjustments accordingly
+if [ "$(grep 'CYGWIN' <<< $platform)" ]; then
+	CYGWIN=true
+elif [ "$(grep 'Darwin' <<< $platform)" ]; then
+	extended="-E"
+	DARWIN=true
+else
+	LINUX=true
+fi
 ######
 # start of programme
 # create scratch directory
@@ -190,4 +208,9 @@ egrep -v "(\
 ·was·	|\
 ^had·)" > $outfile
 consolidate.sh -r $doc $verb $outfile
+if [ "$(grep 'CYGWIN' <<< $platform)" ]; then
+	listname=$(ls *substrd)
+	add_windows_returns "$outfile" > "$outfile."
+	mv "$outfile." "$outfile"
+fi
 done

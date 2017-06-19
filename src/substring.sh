@@ -2,9 +2,9 @@
 export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:"$HOME/bin"" # needed for Cygwin
 ##############################################################################
 # substring.sh 
-copyright="Copyright (c) 2016 Cardiff University, 2011-2014 Andreas Buerki"
+copyright="Copyright (c) 2016-17 Cardiff University, 2011-2014 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version="0.9.9"
+version="0.9.9.1"
 ####
 # DESCRRIPTION: this is an interactive wrapper script for the Substring package
 # SYNOPSIS: 	substring.sh [OPTIONS]

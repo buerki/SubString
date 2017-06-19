@@ -161,13 +161,13 @@ for file in $components; do
 	rm -f "$HOME/bin/$file" 2>/dev/null
 	existing=""
 done'
-if [ "$CYGWIN" ]; then
+if [ "$CYGWIN" ] && [ "$$cygwin_only" ]; then
 	rm "$DESTINATION2$cygwin_only" 2>/dev/null
 	rm /cygdrive/c/Users/"$USERNAME"/Desktop/Substring.lnk 2>/dev/null
-elif [ "$DARWIN" ]; then
+elif [ "$DARWIN" ] && [ "$osx_only" ]; then
 	rm -r /Applications/$osx_only 2>/dev/null
 	rm -r $HOME/Desktop/$osx_only 2>/dev/null
-else
+elif [ "$linux_only" ]; then
 	rm "$HOME/.icons/$linux_only" 2>/dev/null
 	rm $HOME/Desktop/Substring.desktop 2>/dev/null
 fi
