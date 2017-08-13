@@ -1,3 +1,13 @@
+release notes v. 0.9.9.2
+************************
+
+substring-processor.sh
+- raised limit of number of uncut lists to be incorporated in the consolidation to 12.
+
+TP-filter.sh
+- added option to rate on a scale from 1 to 6 rather than a binary T/F distinction.
+
+
 release notes v. 0.9.9.1
 ************************
 

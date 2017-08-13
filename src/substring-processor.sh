@@ -3,7 +3,7 @@
 # substring.sh 
 copyright="Copyright (c) 2016-17 Cardiff University, 2011-2014 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version="0.9.9.1"
+version="0.9.9.2"
 ####
 # DESCRRIPTION: performs frequency consolidation among different length n-grams
 #				for options see -h
@@ -476,8 +476,22 @@ do
 			uncut4=$OPTARG
 		elif [ $number_of_uncut_lists -eq 5 ]; then
 			uncut5=$OPTARG
+		elif [ $number_of_uncut_lists -eq 6 ]; then
+			uncut6=$OPTARG
+		elif [ $number_of_uncut_lists -eq 7 ]; then
+			uncut7=$OPTARG
+		elif [ $number_of_uncut_lists -eq 8 ]; then
+			uncut8=$OPTARG
+		elif [ $number_of_uncut_lists -eq 9 ]; then
+			uncut9=$OPTARG
+		elif [ $number_of_uncut_lists -eq 10 ]; then
+			uncut10=$OPTARG
+		elif [ $number_of_uncut_lists -eq 11 ]; then
+			uncut11=$OPTARG
+		elif [ $number_of_uncut_lists -eq 12 ]; then
+			uncut12=$OPTARG
 		else
-			echo "no more than 5 uncut lists allowed" >&2
+			echo "no more than 12 uncut lists allowed" >&2
 			exit 1
 		fi
 		;;

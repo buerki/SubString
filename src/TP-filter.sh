@@ -1,9 +1,9 @@
 #!/bin/bash -
 ##############################################################################
 # TP_filter.sh
-copyright="Copyright (c) 2016 Cardiff University, 2009, 2013-2015 Andreas Buerki"
-# licensed under the EUPL V.1.1.
-version='0.8.6'
+copyright="Copyright (c) 2016-17 Cardiff University, 2009, 2013-2015 Andreas Buerki
+licensed under the EUPL V.1.1."
+version='0.8.8'
 ####
 # DESCRRIPTION: provides a interface for manual TP-FP filtering
 # SYNOPSIS:     TP-filter.sh FILE
@@ -19,10 +19,13 @@ help ( ) {
 	echo "
 Usage: $(basename $0) [OPTIONS] FILE
 example: $(basename $0) joined.tidy
-options: -r only displays result (several argument files may be provided)
+options: -g use gradation rating scheme
+         -r only displays result (several argument files may be provided)
+         -a auxiliary mode: suppress all but rating dialogues
          -t display result in terms of tokens
-         -o use other rating scheme, not TP/FP
+         -f use free rating scheme, not TP/F
          -h help
+         -p SEP provide word separator used in input n-gram lists
          -V display version information
 "
 }
@@ -37,19 +40,50 @@ getch ( ) {
 get_tokens ( ) {
 TP=$(echo "$(grep "T$" $1 | cut -f 2 | sed 's/$/ +/g' ) 0" | tr '\n' ' '| sed 's/  / /g' |bc)
 FP=$(echo "$(grep "F$" "$1" | cut -f 2 | sed 's/$/ +/g' ) 0" | tr '\n' ' '| sed 's/  / /g' |bc)
-U=$(echo "$(grep "U$" "$1" | cut -f 2 | sed 's/$/ +/g' ) 0" | tr '\n' ' '| sed 's/  / /g' |bc)
-total=$(echo "$TP + $FP + $U" | bc)
+S=$(echo "$(grep "S$" "$1" | cut -f 2 | sed 's/$/ +/g' ) 0" | tr '\n' ' '| sed 's/  / /g' |bc)
+total=$(echo "$TP + $FP + $S" | bc)
 }
 # define get_types function
 get_types ( ) {
-TP=$(grep "T$" "$1" | wc -l | sed 's/ //g')
-FP=$(grep "F$" "$1" | wc -l | sed 's/ //g')
-U=$(grep "U$" "$1" | wc -l | sed 's/ //g')
-total=$(expr $TP + $FP + $U)
+TP=$(grep -o "T$" "$1" | wc -l | sed 's/ //g')
+FP=$(grep -o "F$" "$1" | wc -l | sed 's/ //g')
+S=$(grep -o "S$" "$1" | wc -l | sed 's/ //g')
+total=$(expr $TP + $FP + $S)
 }
 # define get_categories function
 get_categories ( ) {
-cats=$(sed 's/.*\(.\)$/\1/g' "$1" | sort | uniq)
+if [ "$gradation" ]; then
+	cats=$(sed 's/.*\(..\)$/\1/g' "$1" | sort | uniq)
+else 
+	cats=$(sed 's/.*\(.\)$/\1/g' "$1" | sort | uniq)
+fi
+}
+# define get_separator function
+get_separator ( ) {
+# checking input list to derive separator
+# check if -p option is active and if so, use that separator
+if [ "$separator" ]; then
+	:
+else
+	testline=$(head -1 $infile.tmp)|| exit 1
+	nsize=$(echo $testline | awk '{c+=gsub(s,s)}END{print c}' s='<>') 
+	if [ "$nsize" -gt 0 ]; then
+		separator='<>'
+	else
+		nsize=$(echo $testline | awk '{c+=gsub(s,s)}END{print c}' s='·')
+		if [ "$nsize" -gt 0 ]; then
+			separator='·'
+		else
+			nsize=$(echo $testline | awk '{c+=gsub(s,s)}END{print c}' s='_')
+			if [ "$nsize" -gt 0 ]; then
+				separator='_'	
+			else
+				echo "unknown separator in $testline" >&2
+				exit 1
+			fi
+		fi
+	fi
+fi
 }
 # define report_categories function
 report_categories ( ) {
@@ -61,43 +95,445 @@ for cat in $cats;do
 		stat=$(grep "$cat$" "$1" | wc -l | sed 's/ //g')
 		total=$(wc -l < "$1")
 	fi
-	echo "   $cat                 $(echo "$stat * 100 / $total" | sed 's/ //g' | bc)% ($stat items)"
+	echo "                  $cat  $(echo "$stat * 100 / $total" | sed 's/ //g' | bc)% ($stat items)"
 done
+}
+# define report_statistics function
+report_statistics ( ) {
+	# prepare T/F statistics
+	if [ -z "$other" ]; then
+		if [ "$tokens" ]; then
+			get_tokens "$1"
+		else
+			get_types "$1"
+		fi
+	fi
+	if [ "$other" ] || [ "$gradation" ]; then
+		get_categories "$1"
+		report_categories "$1"
+		if [ "$gradation" ]; then
+			echo
+			echo "                  ------summary------"
+			echo "                  T  $(expr \( $TP \* 100 \) / $total )% ($TP items)"
+			echo "                  F  $(expr \( $FP \* 100 \) / $total )% ($FP items)"
+			echo "                  S  $(expr \( $S \* 100 \) / $total )% ($S items) skipped"
+		fi
+	else
+		echo "                  T  $(expr \( $TP \* 100 \) / $total )% ($TP items)"
+		echo "                  F  $(expr \( $FP \* 100 \) / $total )% ($FP items)"
+		echo "                  S  $(expr \( $S \* 100 \) / $total )% ($S items) skipped"
+	fi
+	echo " "
+	echo " "
+}
+# define categorisation_options function
+categorisation_options ( ) {
+	if [ "$other" ]; then
+		echo "      Enter designation (single letters only) or one of the following commands:"
+	elif [ "$gradation" ]; then
+		echo "          semantic unit?"
+		echo 
+#		echo "                        unsure"
+#		echo "        NO <--------------|--------------> YES"
+#		echo "            (1)  (2)  (3)   (4)  (5)  (6)"
+#		echo
+		echo "          (1) NO  [certain]"
+		echo "          (2) NO  [quite certain]"
+		echo "          (3) NO  [uncertain]"
+		echo "          (4) YES [uncertain]"
+		echo "          (5) YES [quite certain]"
+		echo "          (6) YES [certain]"
+		echo ""
+	else
+		echo "          (t) designate TRUE"
+		echo "          (f) designate false"
+	fi
 }
 # define secondary_menu function
 secondary_menu ( ) {
-					printf "\033c"
-					echo " "
-					echo " "
-					echo $line | cut -d "_" -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g'
-					echo " "
-					echo " "
-					if [ -z "$other" ]; then
-						echo "          (t) designate true"
-						echo "          (f) designate false"
-					fi
-					echo "          (s) skip current item"
+printf "\033c"
+echo " "
+echo " "
+echo $line | cut -d "_" -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g'
+echo " "
+echo " "
+categorisation_options
+echo
+echo "          (s) skip current item"
+getch
+case $GETCH in
+1)		echo "$line	1F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		;;
+2)		echo "$line	2F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		;;
+3)		echo "$line	3F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		;;
+4)		echo "$line	4T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		;;
+5)		echo "$line	5T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		;;
+6)		echo "$line	6T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		;;
+t|T)	if [ "$gradation" ]; then
+			echo "$GETCH is not a valid choice. Skipped."
+			echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		else
+			echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		fi
+		;;
+f|F)	if [ "$gradation" ]; then
+			echo "$GETCH is not a valid choice. Skipped."
+			echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		else
+			echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		fi
+		;;
+s|S)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		;;
+*)		if [ -z "$other" ]; then
+			echo "$GETCH was not a valid choice. Try again."
+				getch
+				case $GETCH in
+				1)		echo "$line	1F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				2)		echo "$line	2F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				3)		echo "$line	3F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				4)		echo "$line	4T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				5)		echo "$line	5T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				6)		echo "$line	6T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				t|T)	if [ "$gradation" ]; then
+							echo "$GETCH is not a valid choice. Skipped."
+							echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						else
+							echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						fi
+						;;
+				f|F)	if [ "$gradation" ]; then
+							echo "$GETCH is not a valid choice. Skipped."
+							echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						else
+							echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						fi
+						;;
+				s|S)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				*)		echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				esac
+		elif [ -z "$GETCH" ]; then
+			echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		else
+			echo "$line	$GETCH"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+		fi
+		;;
+esac					
+}
+# define case_gradation function
+case_gradation ( ) {
+	case $GETCH in
+	1)		echo "$line	1F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	2)		echo "$line	2F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	3)		echo "$line	3F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	4)		echo "$line	4T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	5)		echo "$line	5T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	6)		echo "$line	6T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	s|S)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	b|B)	printf "\033c"
+			previous="$(tail -n 1 "$infile.tpfltd")"
+			echo "previous item was"
+			echo " "
+			echo "$(echo "$previous" | cut -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g')   $( echo "$previous" | sed 's/.*\(..\)$/\1/g')"
+			echo " "
+			echo " "
+			echo " "
+			categorisation_options
+			echo
+			echo "          (u) change to undesignated"
+			echo "          (n) no change, carry on"
+			getch
+				case $GETCH in
+				1)		categorisation="1F"
+						back_categorisation_process "$infile"
+						;;
+				2)		categorisation="2F"
+						back_categorisation_process "$infile"
+						;;
+				3)		categorisation="3F"
+						back_categorisation_process "$infile"
+						;;
+				4)		categorisation="4T"
+						back_categorisation_process "$infile"
+						;;
+				5)		categorisation="5T"
+						back_categorisation_process "$infile"
+						;;
+				6)		categorisation="6T"
+						back_categorisation_process "$infile"
+						;;
+				s|S)	categorisation="S"
+						back_categorisation_process "$infile"
+						;;
+				n|N)	printf "\033c"
+						secondary_menu
+						;;
+				*)		categorisation="S"
+						back_categorisation_process "$infile"
+						;;
+				esac
+			;;				
+	r|R)	printf "\033c"
+			cat "$infile.tpfltd"
+			echo " "
+			echo " "
+			echo "press any key to continue"
+			getch
+			printf "\033c"
+			echo " "
+			echo " "
+			echo $line | cut -d "_" -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g'
+			echo " "
+			secondary_menu
+			;;
+	l|L)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g'  >> "$infile.tpfltd"
+			if [ "$auxiliary" ]; then
+				echo "just a moment..."
+			else
+				echo "copying remaining lines ..."
+			fi
+			copyundesignatedly=TRUE
+			;;
+	x|X)	if [ "$auxiliary" ]; then
+				echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g'  >> "$infile.tpfltd"
+			else
+				mv "$infile.tpfltd" $HOME/.Trash
+				rm "$infile.tmp"
+				exit 0
+			fi
+			;;
+	*)		if [ -z "$other" ]; then
+				echo "$GETCH was not a valid choice. Try again."
+				getch
+				case $GETCH in
+					1)		echo "$line	1F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+							;;
+					2)		echo "$line	2F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+							;;
+					3)		echo "$line	3F"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+							;;
+					4)		echo "$line	4T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+							;;
+					5)		echo "$line	5T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+							;;
+					6)		echo "$line	6T"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+							;;
+					s|S)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+							;;
+					*)		echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+							;;
+				esac
+			elif [ -z "$GETCH" ]; then
+				echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			else
+				echo "$line	$GETCH"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			fi
+			;;
+	esac
+}
+# define case_other function
+case_other ( ) {
+	case $GETCH in
+	s|S)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	b|B)	printf "\033c"
+			previous="$(tail -n 1 "$infile.tpfltd")"
+			echo "previous item was"
+			echo " "
+			echo "$(echo "$previous" | cut -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g')   $( echo "$previous" | sed 's/.*\(..\)$/\1/g')"
+			echo " "
+			echo " "
+			echo " "
+			categorisation_options
+			echo
+			echo "          (u) change to undesignated"
+			echo "          (n) no change, carry on"
+			getch
+				case $GETCH in
+				s|S)	categorisation="S"
+						back_categorisation_process "$infile"
+						;;
+				n|N)	printf "\033c"
+						secondary_menu
+						;;
+				*)		categorisation="$GETCH"
+						back_categorisation_process "$infile"
+						;;
+				esac
+			;;				
+	r|R)	printf "\033c"
+			cat "$infile.tpfltd"
+			echo " "
+			echo " "
+			echo "press any key to continue"
+			getch
+			printf "\033c"
+			echo " "
+			echo " "
+			echo $line | cut -d "_" -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g'
+			echo " "
+			secondary_menu
+			;;
+	l|L)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g'  >> "$infile.tpfltd"
+			if [ "$auxiliary" ]; then
+				echo "just a moment ..."
+			else
+				echo "copying remaining lines ..."
+			fi
+			copyundesignatedly=TRUE
+			;;
+	x|X)	if [ "$auxiliary" ]; then
+				echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g'  >> "$infile.tpfltd"
+			else
+				mv "$infile.tpfltd" $HOME/.Trash
+				rm "$infile.tmp"
+				exit 0
+			fi
+			;;
+	*)		if [ -z "$GETCH" ]; then
+				echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			else
+				echo "$line	$GETCH"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			fi
+			;;
+	esac
+}
+# define case_TF function
+case_TF ( ) {
+	case $GETCH in
+	t|T)	echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	f|F)	echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	s|S)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+			;;
+	b|B)	printf "\033c"
+			previous="$(tail -n 1 "$infile.tpfltd")"
+			echo "previous item was"
+			echo " "
+			echo "$(echo "$previous" | cut -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g')   $( echo "$previous" | sed 's/.*\(..\)$/\1/g')"
+			echo " "
+			echo " "
+			echo " "
+			categorisation_options
+			echo
+			echo "          (s) change to skipped"
+			echo "          (n) no change, carry on"
+			getch
+				case $GETCH in
+				t|T)	categorisation="T"
+						back_categorisation_process "$infile"
+						;;
+				f|F)	categorisation="F"
+						back_categorisation_process "$infile"
+						;;
+				s|S)	categorisation="S"
+						back_categorisation_process "$infile"
+						;;
+				n|N)	printf "\033c"
+						secondary_menu
+						;;
+				*)		categorisation="S"
+						back_categorisation_process "$infile"
+						;;
+				esac
+			;;				
+	r|R)	printf "\033c"
+			cat "$infile.tpfltd"
+			echo " "
+			echo " "
+			echo "press any key to continue"
+			getch
+			printf "\033c"
+			echo " "
+			echo " "
+			echo $line | cut -d "_" -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g'
+			echo " "
+			secondary_menu
+			;;
+	l|L)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g'  >> "$infile.tpfltd"
+			if [ "$auxiliary" ]; then
+				echo "just a moment ..."
+			else
+				echo "copying remaining lines ..."
+			fi
+			copyundesignatedly=TRUE
+			;;
+	x|X)	if [ "$auxiliary" ]; then
+				echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g'  >> "$infile.tpfltd"
+			else
+				mv "$infile.tpfltd" $HOME/.Trash
+				rm "$infile.tmp"
+				exit 0
+			fi
+			;;
+	*)		echo "$GETCH was not a valid choice. Try again."
+			getch
+			case $GETCH in
+				t|T)	echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				f|F)	echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				s|S)	echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+				*)		echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
+						;;
+			esac
+			;;
+	esac
+}
+# define back_categorisation_process function
+back_categorisation_process ( ) {
+	sed '$d' < "$infile.tpfltd" > $TMPDIR/TPtmp ; mv $TMPDIR/TPtmp "$infile.tpfltd"
+	echo "$(echo $previous | sed 's/ [[:digit:]]*[[:alpha:]]$//g')	$categorisation" >> "$infile.tpfltd"
+	printf "\033c"
+	secondary_menu "$infile"
 }
 ############### END defining functions ########################################
 
 # analyse options
-while getopts hVort opt
+while getopts ahgfp:Vrt opt
 do
 	case $opt	in
+	a)	auxiliary=TRUE
+		;;
 	h)	help
 		exit 0
 		;;
+	g)	gradation=TRUE
+		;;
 	V)	echo "$(basename $0)	-	version $version"
 		echo "$copyright"
-		echo "licensed under the EUPL V.1.1"
 		echo "written by Andreas Buerki"
 		exit 0
 		;;
-	o)	other=true
+	f)	other=TRUE
 		;;
-	r)	results_only=true
+	p)	separator="$OPTARG"
 		;;
-	t)	tokens=true
+	r)	results_only=TRUE
+		;;
+	t)	tokens=TRUE
 		;;
 	esac
 done
@@ -111,30 +547,44 @@ for file; do
 		exit 1
 	fi
 done
+# put input file name/path in to variable
+infile="$1"
 if [ $# -gt 1 ] && [ -z "$results_only" ]; then
 	echo "only the first argument list will be processed" >&2
 fi
 # check if list has been processed
-if [ -z "$other" ] && [ -n "$(head -n 1 "$1" | egrep "[TFU]$" | cut -f 1 )" ] ; then
-	resume=true
-elif [ "$other" ] && [ "$(head -n 1 "$1" | egrep "[[:alpha:]]$" | cut -f 1 )" ]; then
-	resume=true
+if [ "$(grep '.tpfltd' <<<"$infile")" ]; then
+	resume=TRUE
+elif [ -z "$other" ] && [ -n "$(head -n 1 "$infile" | egrep -o "[TFSU]$" )" ] ; then
+	resume=TRUE
+elif [ "$gradation" ] && [ -n "$(head -n 1 "$infile" | egrep -o "	[123456][TFSU]$" )" ] ; then
+	resume=TRUE
+elif [ "$other" ] && [ "$(head -n 1 "$infile" | egrep -o "[[:alpha:]]$" )" ]; then
+	resume=TRUE
+fi
+# if resume, make sure we are resuming with correct categorisation system
+if [ "$resume" ]; then
+	if [ -z "$gradation" ] && [ "$(head -n 1 "$infile" | egrep -o "	[123456][TFSU]$" )" ] ; then
+		gradation=TRUE
+	elif [ -z "$other" ] && [ "$(head -n 1 "$infile" | egrep -o "	[[:alpha:]]$" | egrep -v "[TFSU]" )" ]; then
+		other=TRUE
+	fi
 fi
 ################## process for results-only option ############################
 if [ "$results_only" ]; then
-	if [ "$other" ]; then echo "-r option not available in conjuction with -o."
+	if [ "$other" ] || [ "$gradation" ]; then echo "-r option not available in conjuction with -f/-g."
 >&2;exit 0;fi
 	echo "file / TPs / % / undecided $(if [ "$tokens" ]; then echo "  (tokens)";fi)"
 	for file; do
 		# check if files were processed and issue error if not
-		if [ -n "$(head -n 1 "$file" | egrep "[TFU]$" | cut -f 1 )" ] ; then
+		if [ -n "$(head -n 1 "$file" | egrep "[TFSU]$" | cut -f 1 )" ] ; then
 			# prepare statistics
 			if [ "$tokens" ]; then
 				get_tokens "$file"
 			else
 				get_types "$file"
 			fi
-			echo "$(basename "$file") / $TP / $(expr \( $TP \* 100 \) / $total )% / $U"
+			echo "$(basename "$file") / $TP / $(expr \( $TP \* 100 \) / $total )% / $S"
 		else
 			echo "$file is not TP annotated ----------"
 		fi
@@ -142,65 +592,48 @@ if [ "$results_only" ]; then
 	exit 0
 fi
 ################## END process for results-only option #######################
-if [ "$resume" == "true" ]; then
-	# prepare statistics
-	if [ "$other" ]; then
-		get_categories "$1"
-	else
-	# prepare statistics
-		if [ "$tokens" ]; then
-			get_tokens "$1"
-		else
-			get_types "$1"
-		fi
+if [ "$resume" ]; then
+	if [ -z "$auxiliary" ]; then
+		printf "\033c"
+		echo " "
+		echo " "
+		echo "statistics so far:$(if [ "$tokens" ]; then echo "  (tokens)";fi)"
+		echo " "
+		echo " "
+		report_statistics "$1"
+		echo "resuming $(if [ -z "$other" ]; then echo "TP filtering ";fi)in 1 second"
+		echo " "
+		echo " "
+		echo " "
+		sleep 1.5
 	fi
-	printf "\033c"
-	echo " "
-	echo " "
-	echo "statistics so far:$(if [ "$tokens" ]; then echo "  (tokens)";fi)"
-	echo " "
-	echo " "
-	if [ "$other" ]; then
-		report_categories "$1"
-	else
-		echo "                     $(expr \( $TP \* 100 \) / $total )% ($TP items) TP"
-		echo "                     $(expr \( $FP \* 100 \) / $total )% ($FP items) FP"
-		echo "                     $(expr \( $U \* 100 \) / $total )% ($U items) undecided"
-	fi
-	echo " "
-	echo " "
-	echo "resuming $(if [ -z "$other" ]; then echo "TP filtering ";fi)in 1 second"
-	echo " "
-	echo " "
-	echo " "
-	sleep 1
 	# backup original list
-	cp "$1" $1.bkup
+	cp "$infile" "$infile.bkup"
 	# check if target list exists
-	if [ -a "$1.tpfltd" ] ; then
-		echo "$1.tpfltd exists. overwrite? (y/n)"
+	if [ -a "$infile.tpfltd" ] ; then
+		echo "$infile.tpfltd exists. overwrite? (y/n)"
 		getch
 		if [ $GETCH == y ] ; then
-			rm "$1.tpfltd"
+			rm "$infile.tpfltd"
 		else
 			echo "exited without changing anything"
 			exit 0
 		fi
 	fi
 	# put lines already processed into the new output file
-	egrep "[^U]$" $1.bkup > "$1.tpfltd"
+	egrep "[^S]$" "$infile.bkup" > "$infile.tpfltd"
 	# put undecided lines into a tmp file and replace tabs with underscores
-	egrep "U$" $1.bkup | sed 's/	.$//g' | sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g'  > "$1.tmp"
+	egrep "S$" "$infile.bkup" | sed 's/	.$//g' | sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g'  > "$infile.tmp"
 else
 	# create tmp file with underscores instead of tabs
-	sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g' "$1" > "$1.tmp"
+	sed -e 's/_/UNDERSCORE/g' -e 's/	/_/g' "$infile" > "$infile.tmp"
 
 	# check if target list exists
-	if [ -a "$1.tpfltd" ] ; then
-		echo "$1.tpfltd exists. overwrite? (y/n)"
+	if [ -a "$infile.tpfltd" ] ; then
+		echo "$infile.tpfltd exists. overwrite? (y/n)"
 		getch
-		if [ $GETCH == y ] ; then
-			rm "$1.tpfltd"
+		if [ "$GETCH" == "y" ] ; then
+			rm "$infile.tpfltd"
 		else
 			echo "exited without changing anything"
 			exit 0
@@ -210,218 +643,60 @@ fi
 # start time
 start=$(date)
 # start for in loop
-for line in $(cat "$1.tmp")
+for line in $(cat "$infile.tmp")
 do
 	(( progress += 1 ))
 	if [ "$copyundesignatedly" ] ; then
-		echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
+		echo "$line	S" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$infile.tpfltd"
 	else
 		printf "\033c"
 		echo $progress
 		echo " "
 		echo " "
-		echo $line | cut -d "_" -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g'
-		echo " "
-		echo " "
-		if [ "$other" ]; then
-			echo "      Enter designation or one of the following commands:"
+		if [ "$auxiliary" ]; then
+			get_separator
+			echo $line | cut -d "_" -f 1 | sed -e "s/$separator/ /g" -e 's/_/	/g' -e 's/UNDERSCORE/_/g'
 		else
-			echo "          (t) designate true"
-			echo "          (f) designate false"
+			echo $line | cut -d "_" -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g'
 		fi
-		echo "          (s) | (u) skip current item"
+		echo " "
+		echo " "
+		categorisation_options
+		echo "          (s) skip current item"
 		echo "          (b) back to previous item"
 		echo " "
 		echo "          (r) review all designations up to now"
 		echo "          (l) resume later"
-		echo "          (x) exit and discard all designations"
+		if [ -z "$auxiliary" ]; then echo "          (x) exit and discard all designations"; fi
 		getch
-			case $GETCH in
-			t|T)	echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					;;
-			f|F)	echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					;;
-			s|S)	echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					;;
-			b|B)	printf "\033c"
-					previous=$(tail -n 1 "$1.tpfltd")
-					echo "previous item was"
-					echo " "
-					echo "$(echo "$previous" | cut -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g')   $( echo "$previous" | sed 's/.*\(.\)/\1/g')"
-					echo " "
-					echo " "
-					echo " "
-					if [ -z "$other" ]; then 
-						echo "          (t) change to true"
-						echo "          (f) change to false"
-					fi
-					echo "          (u) change to undesignated"
-					echo "          (n) no change, carry on"
-					getch
-						case $GETCH in
-						t|T)	sed '$d' < "$1.tpfltd" > $TMPDIR/TPtmp ; mv $TMPDIR/TPtmp "$1.tpfltd"
-								echo "$(echo $previous | sed 's/	.$//g')	T" >> "$1.tpfltd"
-								printf "\033c"
-								secondary_menu
-								getch
-								if [ $GETCH == t ] ; then
-									echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								elif [ $GETCH == f ] ; then
-									echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								else
-									echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								fi
-								;;
-						f|F)	sed '$d' < "$1.tpfltd" > $TMPDIR/TPtmp ; mv $TMPDIR/TPtmp "$1.tpfltd"
-								echo "$(echo $previous | sed 's/	.$//g')	F" >> "$1.tpfltd"
-								printf "\033c"
-								secondary_menu
-								getch
-								if [ $GETCH == t ] ; then
-									echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								elif [ $GETCH == f ] ; then
-									echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								else
-									echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								fi
-								;;
-						u|U)	sed '$d' < "$1.tpfltd" > $TMPDIR/TPtmp ; mv $TMPDIR/TPtmp "$1.tpfltd"
-								echo "$(echo $previous | sed 's/	.$//g')	U" >> "$1.tpfltd"
-								printf "\033c"
-								secondary_menu
-								getch
-								if [ $GETCH == t ] ; then
-									echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								elif [ $GETCH == f ] ; then
-									echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								else
-									echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								fi
-								;;
-						n|N)	printf "\033c"
-								secondary_menu
-								getch
-								if [ $GETCH == t ] ; then
-									echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								elif [ $GETCH == f ] ; then
-									echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								else
-									echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								fi
-								;;
-						*)	if [ -z "$other" ] || [ -z "$GETCH" ]; then
-								sed '$d' < "$1.tpfltd" > $TMPDIR/TPtmp ; mv $TMPDIR/TPtmp "$1.tpfltd"
-								echo "$(echo $previous | sed 's/	.$//g')	U" >> "$1.tpfltd"
-								printf "\033c"
-								secondary_menu
-								getch
-								if [ $GETCH == t ] ; then
-									echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								elif [ $GETCH == f ] ; then
-									echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								else
-									echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-								fi
-							else
-								sed '$d' < "$1.tpfltd" > $TMPDIR/TPtmp ; mv $TMPDIR/TPtmp "$1.tpfltd"
-								echo "$(echo $previous | sed 's/	.$//g')	$GETCH" >> "$1.tpfltd"
-							fi
-							;;
-						esac
-					;;				
-			r|R)	printf "\033c"
-					cat "$1.tpfltd"
-					echo " "
-					echo " "
-					echo "press any key to continue"
-					getch
-					printf "\033c"
-					echo " "
-					echo " "
-					echo $line | cut -d "_" -f 1 | sed -e 's/\<\>/ /g' -e 's/_/	/g' -e 's/UNDERSCORE/_/g'
-					echo " "
-					if [ -z "$other" ]; then
-						echo "          (t) designate true"
-						echo "          (f) designate false"
-					fi
-					echo "          (s) skip current item"
-					getch
-					if [ $GETCH == t ] || [ $GETCH == T ]; then
-						echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					elif [ $GETCH == f ] || [ $GETCH == F ]; then
-						echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					elif [ $GETCH == u ] || [ $GETCH == U ]; then
-						echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					elif [ "$other" ]; then
-						echo "$line	$GETCH" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					else
-						echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					fi
-					;;
-			l|L)	echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g'  >> "$1.tpfltd"
-					echo "copying remaining lines ..."
-					copyundesignatedly=true
-					;;
-			x|X)	mv "$1.tpfltd" $HOME/.Trash
-					rm "$1.tmp"
-					exit 0
-					;;
-			*)		if [ -z "$other" ]; then
-					echo "$GETCH was not a valid choice. Try again."
-					getch
-					if [ $GETCH == t ] ; then
-						echo "$line	T" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					elif [ $GETCH == f ] ; then
-						echo "$line	F" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					else
-						echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					fi
-					elif [ -z "$GETCH" ]; then
-						echo "$line	U" | sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					else
-						echo "$line	$GETCH"| sed -e 's/_/	/g' -e 's/UNDERSCORE/_/g' >> "$1.tpfltd"
-					fi
-					;;
-			esac
+		if [ "$gradation" ]; then
+			case_gradation
+		elif [ "$other"]; then
+			case_other
+		else
+			case_TF
+		fi
 	fi
 done
 # tidy up
-rm "$1.tmp"
-# prepare statistics
-if [ "$other" ]; then
-	get_categories "$1.tpfltd"
-else	
-	if [ "$tokens" ]; then
-		get_tokens "$1.tpfltd"
-	else
-		get_types "$1.tpfltd"
-	fi
+rm "$infile.tmp"
+if [ -z "$auxiliary" ]; then
+	printf "\033c"
+	echo " "
+	echo " "
+	echo "statistics:$(if [ "$tokens" ]; then echo "  (tokens)";fi)"
+	echo " "
+	echo " "
+	report_statistics "$infile.tpfltd"
+	echo "start:	$start"
+	echo "end:	$(date)"
 fi
-printf "\033c"
-echo " "
-echo " "
-echo "statistics:$(if [ "$tokens" ]; then echo "  (tokens)";fi)"
-echo " "
-echo " "
-if [ "$other" ]; then
-		report_categories "$1.tpfltd"
-else
-	echo "                     $(expr \( $TP \* 100 \) / $total )% ($TP items) TP"
-	echo "                     $(expr \( $FP \* 100 \) / $total )% ($FP items) FP"
-	echo "                     $(expr \( $U \* 100 \) / $total )% ($U items) undecided"
-fi
-echo " "
-echo " "
-echo " "
-echo "start:	$start"
-echo "end:	$(date)"
-
-if [ "$resume" == "true" ] ; then
-	mv "$1.tpfltd" "$1"
-	rm "$1.bkup"
+if [ "$resume" == "TRUE" ] ; then
+	mv "$infile.tpfltd" "$infile"
+	rm "$infile.bkup"
 fi
 
 # tidy up
-if [ -e "$1.tmp" ]; then
-	rm "$1.tmp"
+if [ -e "$infile.tmp" ]; then
+	rm "$infile.tmp"
 fi

@@ -44,7 +44,7 @@ A number of further auxiliary scripts are also installed (see section E, below).
 
 C. Compatible Systems
 ------
-SubString was tested on OS X (v. 10.9 to 10.11), Ubuntu Linux (version Xubuntu 14.04) and on Windows 7 and 8 using [Cygwin](cygwin.com) (v. 1.8). SubString should run on all platforms on which a bash shell is installed. For efficient processing of larger amounts of data, bash v. 4 is necessary (although the software will automatically substitute a slower algorithm if only bash v. 3 is available).[^2] Especially under Windows systems, there can be problems if file and/or folder names contain spaces, so it  is best to avoid locations on the system that have folder name with a space.
+SubString was tested on OS X (v. 10.11 & 10.12), Ubuntu Linux (version Xubuntu 14.04) and on Windows 7 and 8 using [Cygwin](cygwin.com) (v. 1.8). SubString should run on all platforms on which a bash shell is installed. For efficient processing of larger amounts of data, bash v. 4 is necessary (although the software will automatically substitute a slower algorithm if only bash v. 3 is available).[^2] Especially under Windows systems, there can be problems if file and/or folder names contain spaces, so it  is best to avoid locations on the system that have folder name with a space.
 [^2]: Most recent operating system versions have bash v. 4 installed as standard, but MacOS X has bash v. 3.2 installed as standard. Bash v. 4 can be installed using [MacPorts](http://www.macports.org), [Homebrew](http://brew.sh) or similar and then the new version would either need to be put in the directory `/bin` (replacing the old version) or the first line of the `substring.sh` script would need adjusting to point to the new version of bash (if installed via MacPorts, the new line would read `#!/opt/local/bin/bash` instead of `#!/usr/bin/env bash`).
 
 
@@ -253,7 +253,7 @@ None reported at this time. Issues can be raised at [http://github.com/buerki/Su
 G. Copyright, licensing, download
 ---------------------------------
 
-Substring is (c) 2016 Cardiff University, 2011-2015 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public Licence) which is an open-source licence (see the EUPL.pdf file for the full licence).
+Substring is (c) 2016-2017 Cardiff University, 2011-2015 Andreas Buerki, licensed under the EUPL V.1.1. (the European Union Public Licence) which is an open-source licence (see the EUPL.pdf file for the full licence).
 
 The project resides at [http://buerki.github.com/SubString/](http://buerki.github.com/SubString/) and new versions will be posted there. Suggestions and feedback are welcome. To be notified of new releases, go to https://github.com/buerki/SubString, click on the 'Watch' button and sign in.
 
