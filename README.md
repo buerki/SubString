@@ -22,7 +22,7 @@ The remaining 2-grams ('have a', 'a lovely' and 'lovely time') are also substrin
        a lovely           101        a lovely             14
        lovely time         45        lovely time           1
 
-A more in-depth theoretical description and justification of the algorithm is currently in preparation. See also [O'Donnell (2011)](
+A more in-depth theoretical description and justification of the algorithm is found in [Buerki (2017)](https://doi.org/10.1007/978-3-319-69805-2_30). See also [O'Donnell (2011)](
 http://icame.uib.no/ij35/Matthew_Brook_ODonnell.pdf) for a discussion of issues
 involved and alternative approaches. The algorithm implemented in SubString works from n-gram lists (rather than source texts) and some assumptions are therefore made regarding what sequences are substrings of what other sequences without the possibility to check this on the basis of the source text. While consolidations are therefore coherent and accurate with regard to input lists, results will inherently differ from what a consolidation on the basis of full text might yield.
 

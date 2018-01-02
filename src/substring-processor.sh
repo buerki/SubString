@@ -67,7 +67,6 @@ Notes:    the output is put in a .substrd file in the pwd unless a different
           output file and location are passed using the -o option
           If -v and -o options are inactive, output is sent to STOUT instead."
 }
-
 # define getch function
 getch ( ) {
 	OLD_STTY=$(stty -g)
@@ -368,7 +367,7 @@ for line in $(cat $1); do
 			# create variable with any remaining numbers such as document count
 			if [ "$doc" ]; then
 				remaining_numbers=".$(cut -d '.' -f 3-10 <<< "$line")"
-				# this incorporates and initial dot as separator
+				# this incorporates an initial dot as separator
 			else
 				remaining_numbers=
 			fi
