@@ -1,0 +1,10 @@
+[Desktop Entry]
+Version=0.4
+Encoding=UTF-8
+Type=Application
+Name=linux_installer
+Comment=
+Categories=Application;
+Exec=sh -e -c "exec \\"\\$(dirname \\"\\$0\\")/OSX_installer.command\\"" %k
+Terminal=true
+StartupNotify=false

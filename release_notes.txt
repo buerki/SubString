@@ -1,3 +1,25 @@
+release notes v. 1.0
+********************
+
+A new, modular architecture was introduced, splitting SubString into three modules. The main algorithm of SubString up to version 0.9.9.2 was retained as one of the modules and a new module (substring-A.py) added that implements a frequency consolidation algorithm that makes use of mwetoolkit's indexing of n-grams. The auxiliary scripts were retained as the third module.
+
+substring.sh
+- adjusted to the modular architecture
+
+TP-filter, cutoff.sh, random_lines.sh, length-adjust.sh
+- changed handling of filename extensions so that extensions are preserved correctly
+
+substring-processor.sh
+- renamed substring-B.sh
+
+newly added:
+- substring-A.py
+- libs/filetype/ft_ngp.py & ft_nsp.py
+- xml_list_to_NGP.py
+- TUTORIAL.md
+- plaintext_list.xsl
+
+
 release notes v. 0.9.9.2
 ************************
 
