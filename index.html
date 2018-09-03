@@ -1,6 +1,7 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
 <html><head>
 
+
   
   <meta content="text/html; charset=ISO-8859-1" http-equiv="content-type"><title>SubString</title></head><body>
 <div style="text-align: center;"><br>
@@ -14,25 +15,52 @@ EUPL V.1.1.</span><br>
 <img style="width: 508px; height: 32px;" alt="----------------------------------------------------------" src="bar.png"><br>
 <br>
 <div style="font-family: monospace; text-align: center;">The
-SubString package is an open-source set of Unix Shell scripts used for<br>
-substring reduction and frequency consolidation of word n-grams of
-different<br>
-length. In the
-process, the frequencies of substrings are reduced by the<br>
-frequencies
-of their superstrings&nbsp;and a consolidated list with n-grams of<br>
-different
-lengths is produced without an inflation of the overall word count.<br>
-The functions performed by SubString will primarily be of interest to<br>
-linguists working on formulaic language, multi-word sequences and
-similar<br>
-phraseological phenomena.<br>
+SubString package is a cross-platform, open-source set of scripts used for<br>
+substring reduction and frequency consolidation of word n-grams. It consists<br>
+&nbsp;of three separate command-line modules (substring-A, substring-B and an<br>
+auxiliary scripts module). Substring-A and -B each implement a different algorithm<br>
+for consolidating the frequencies of word n-grams of different lengths (i.e. of<br>
+different <span style="font-style: italic;">n</span>). The process of frequency consolidation reduces the frequencies<br>
+of substrings by the frequencies of the superstrings in which they are contained<br>
+and an output list is produced showing the consolidated frequencies of all<br>
+n-grams (see below for more on frequency consolidation). The auxiliary<br>
+scripts module provides a number of additional functions related to the<br>
+filtering of n-gram lists. The functions performed by this package will primarily<br>
+be of interest to linguists and computational linguists working on formulaic<br>
+language, multi-word expressions and other phraseological phenomena.<br>
+<br>substring-A (algorithm with indexation)<br>
 <br>
-SubString is cross-platform and currently available as beta software.
-It was<br>
-tested under MacOS X and Xubuntu Linux, but should work well on any
-plat-<br>
-form that can run the bash shell.<br>
+This is a python script designed to work in conjunction with the <a href="http://mwetoolkit.sourceforge.net/PHITE.php" target="_blank">mwetoolkit</a>.<br>
+It takes as input a corpus-indexed list of n-grams (as produced by mwetoolkit)<br>
+and then uses an exact, indexation-based algorithm to consolidate frequencies<br>
+of overlapping n-grams, following <a href="https://books.google.co.uk/books?id=ZjRO8cY0xwEC&amp;printsec=frontcover&amp;dq=Theory+and+Practice+in+Corpus+Linguistics+1990&amp;hl=en&amp;sa=X&amp;ved=0ahUKEwiqvf6q_IDdAhUHJMAKHapOClAQ6AEIJzAA#v=onepage&amp;q=Theory%20and%20Practice%20in%20Corpus%20Linguistics%201990&amp;f=false" target="_blank">Altenberg and Eeg-Olofsson (1990: 16-17)</a>.<br>
+<br>
+The Substring-A algorithm is generally preferable to substring-B in cases <br>
+where access is available to the source texts/corpora from which n-grams are to <br>
+be extracted, and mwetoolkit can be used to extract n-grams from those texts.<br>
+<br>
+substring-B (algorithm without indexation)<br>
+<br>
+This is a set of Unix shell scripts designed to work on a range of simpler n-gram <br>
+list formats (where n-grams are not indexed to their occurrences in a specific<br>
+&nbsp;corpus). Such lists are produced by the <a href="http://buerki.github.io/ngramprocessor/" target="_blank">NGramProcessor</a>, the <a href="http://www.d.umn.edu/%7Etpederse/nsp.html" target="_blank">Ngram Statistics<br>
+Package</a> and various other tools and sources such as <a href="http://storage.googleapis.com/books/ngrams/books/datasetsv2.html" target="_blank">Google Books Ngrams</a>.<br>
+The algorithm implemented by substring-B is described in detail in <a href="https://link.springer.com/chapter/10.1007%2F978-3-319-69805-2_30" target="_blank">Buerki (2017)</a>.<br>
+<br>
+If access to source texts/corpora is unavailable (only n-gram lists are available) <br>
+or if the limitations of mwetoolkit mean that a different tool needs to be used<br>
+&nbsp;for n-gram extraction, substring-B should be used. Access to source corpora may be<br>
+&nbsp;unavailable in case of sources like Google Books Ngrams, or because online corpus <br>
+portals such as the <a href="https://www.sketchengine.eu" target="_blank">Sketch Engine</a> are used that allow the creation of n-gram lists,<br>
+&nbsp;but not the download of the full underlying corpus data. N-gram lists might require<br>
+some formatting before processing, see the README file for substring-B.<br>
+<br>
+auxiliary scripts<br>
+<br>
+Several auxiliary scripts are included in the SubString package which allow the further<br>
+&nbsp;processing of n-gram lists after frequency consolidation. These scripts can be used<br>
+after processing with substring-A or substring-B. See the TUTORIAL included in <br>
+SubString for details on these scripts.<br>
 <br>
 <br>
 <br>
@@ -45,7 +73,7 @@ release</a> | <a href="https://github.com/buerki/SubString/downloads" target="_b
 <br>
 <img style="width: 508px; height: 32px;" alt="----------------------------------------------------------" src="bar.png"></div>
 <br style="font-family: monospace;">
-<span style="font-family: monospace;">last update:&nbsp;2017-06-14<br>
+<span style="font-family: monospace;">last update:&nbsp;2018-09-03<br>
 </span>
 </div>
 
