@@ -1,5 +1,5 @@
 ![alt](bin/SSicon.png)
-SubString v 1.0
+SubString v 1.1
 ===============
 
 The SubString package consists of three separate command-line modules (substring-A, substring-B and an auxiliary scripts module). Substring-A and -B each implement a different algorithm for consolidating the frequencies of word n-grams of different lengths (i.e. of different *n*). The process of frequency consolidation reduces the frequencies of substrings by the frequencies of the superstrings in which they are contained and an output list is produced showing the consolidated frequencies of all n-grams (see below for more on frequency consolidation). The auxiliary scripts module provides a number of additional functions related to the filtering of n-gram lists. The functions performed by this package will primarily be of interest to linguists and computational linguists working on formulaic language, multi-word expressions and other phraseological phenomena.
@@ -86,7 +86,7 @@ Especially under Windows systems, there can be problems if file and/or folder na
 
 #### 2) Manual installation / other flavours of Linux:
 
-To install the substring-A module, copy `substring-A.py` (inside the `bin` directory) to the same bin directory as the other mwetoolkit files; `ft_txtcandidates.py` should be placed in the `bin/libs/filetype` directory of the mwetoolkit installation. The location should be in the users $PATH variable.
+To install the substring-A module, copy `substring-A.py` (inside the `bin` directory) to the same bin directory as the other mwetoolkit files; `ft_txtcandidates.py` should be placed in the `bin/mwetk/filetype` directory of the mwetoolkit installation. The location should be in the users $PATH variable.
 
 All other scripts in the `bin` folder should be placed in a location that is in the user's $PATH variable (or the location should be added to the $PATH variable) so they can be called from the command line. A good place to put the scripts might be `/usr/local/bin` or `~/bin`.
 

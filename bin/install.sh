@@ -9,7 +9,7 @@ version="0.4.3"
 ## set installation variables
 export title="[Ss]ub[Ss]tring"
 export components="substring.sh substring-B.sh length-adjust.sh cutoff.sh consolidate.sh en-filter.sh random_lines.sh TP-filter.sh listconv.sh"
-export components2="substring-A.py libs/filetype/ft_ngp.py libs/filetype/ft_nsp.py"
+export components2="substring-A.py mwetk/filetype/ft_ngp.py mwetk/filetype/ft_nsp.py"
 export DESTINATION="/usr/local/bin"
 export DESTINATION2="/" # for cygwin-only files
 export DESTINATION3=
@@ -105,7 +105,7 @@ if [ -z "$uninstall" ]; then
 			echo "WARNING: No installation of mwetoolkit was found."
 			echo "The substring-A module will not be installed."
 			echo ""
-			echo "After installing mwetoolkit (by moving the contents of its 'bin' directory into /usr/local/bin) re-run this installer. Alternatively, place 'substring-A.py' in the 'bin' directory inside the mwetoolkit directory, and 'ft_ngp.py', 'ft_nsp.py' into the 'bin/libs/filetype' directory inside the mwetoolkit directory."
+			echo "After installing mwetoolkit (by moving the contents of its 'bin' directory into /usr/local/bin) re-run this installer. Alternatively, place 'substring-A.py' in the 'bin' directory inside the mwetoolkit directory, and 'ft_ngp.py', 'ft_nsp.py' into the 'bin/mwetk/filetype' directory inside the mwetoolkit directory."
 			echo
 			echo "Press any key to continue with the installation of remaining modules"
 			getch

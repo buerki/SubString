@@ -1,9 +1,9 @@
 #!/bin/bash -
 ##############################################################################
 # listconv.sh
-copyright="Copyright (c) 2016 Cardiff University, 2011-4 Andreas Buerki"
+copyright="Copyright (c) 2016, 2019 Cardiff University, 2011-4 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version="0.9.9"
+version="1.0"
 ####
 # SYNOPSIS: listconv.sh [OPTIONS] FILE(S)
 ####
@@ -13,6 +13,7 @@ version="0.9.9"
 # 19 Sep 2014	fixed -n option, added -p option and more input formats
 # 25 Nov 2013	added -n option and made default output use the interpunct
 # 23 Dec 2011	remove placement of empty (i.e. 0) document count into output lists
+# 01 Jan 2019   adjustments to work better with Google n-gram format 1
 
 ### defining functions
 # define help function
@@ -24,17 +25,17 @@ OPTIONS: -v verbose
          -t output list in NGramTools format (i.e. 'n gram 0')
          -n output list using diamond (<>) as separator (i.e. 'n<>gram<>	0[ 0]')
           
-DESCRRIPTION: converts the format of n-gram lists from those of the
-			N-Gram Processor (http://buerki.github.io/ngramprocessor/), 
-			NGramTools (http://homepages.inf.ed.ac.uk/lzhang10/ngram.html),
-			the N-Gram Statistics Package (found at http://
-			ngram.sourceforge.net) and Google Books n-gram corpus
-			(http://storage.googleapis.com/books/ngrams/books/datasetsv2.html)
-			to the format for substing.sh.
-			The original list has the affix .old added to its name and
-			a new list is produced in the desired format (by default this
-			is the input format for substrd.sh: 'n·gram·	0	0' (tab
-			delimited), but see -t and -n options.
+DESCRRIPTION: converts the format of n-gram lists from a number of input formats
+          (see below), incl. the format of
+          NGramTools (http://homepages.inf.ed.ac.uk/lzhang10/ngram.html),
+          the N-Gram Statistics Package (found at http://
+          ngram.sourceforge.net) and Google Books n-gram corpus (version 1)
+          (http://storage.googleapis.com/books/ngrams/books/datasetsv2.html)
+          to the NGP format (see http://buerki.github.io/ngramprocessor/).
+          The original list has the affix .old added to its name and
+          a new list is produced in the desired format (by default this
+          is the NGP format: 'n·gram·	0	0' (tab delimited), but see -t and
+          -n options.
           
 NOTE:     The -n option should be used when in a non-unicode environment.
           The script automatically recognises the format of input lists if in
@@ -76,15 +77,17 @@ NOTE:     The -n option should be used when in a non-unicode environment.
 #		measure frequency and document frequency, without trailing space)
 #
 #	9	'n gram	1991	1	1' or 'n gram	1991	1	1	1'
-#		This is the Google Books n-gram corpus version 1 and 2.
+#		This is the Google Books n-gram corpus version 1 (version 2 is different).
 #		(i.e. n-gram with a space between constituents, tab, year,
-#		frequency, followed by some other numbers that vary between versions)
+#		frequency, page frequency, book frequency). Book frequency is taken as 
+#		document frequency in the conversion
 #
 # output formats:
 #################
 #
 #	default:	'n·gram· 370	320'
-#				(i.e. n-gram, frequency, [doc frequency], tab delimited)
+#				(i.e. the NGP format; n-gram, frequency, [doc frequency], 
+#				tab delimited. Document frequency is optional, depending on the input)
 #
 #	-t option	'n gram 6'
 #				(i.e. the NGramTools format)
@@ -172,9 +175,15 @@ for list in $@
 	do	
 	# set separator for list with either · or <>
 	if [ -z "$separator" ]; then
+		echo "establishing separator"
 		if [ -e "$list" ]; then
 			# check separator for current list
-			if [ "$(head -1 "$list" | grep '<>')" ]; then
+			if [ "$(head -1 "$list" | egrep ' ([[:punct:]]|[[:alnum:]])+	[0-9][0-9][0-9][0-9]	[0-9]+	[0-9]+	[0-9]+$')" ]; then
+							separator=" "
+							short_sep=" "
+							googlebooksformat=TRUE
+							echo "Google Books n-gram format detected"
+			elif [ "$(head -1 "$list" | grep '<>')" ]; then
 				separator='<>'
 				short_sep='<'
 			elif [ "$(head -1 "$list" | grep '·')" ]; then
@@ -189,7 +198,7 @@ for list in $@
 					short_sep="·"
 					eliminate_first_line=true
 			else
-				echo "unknown separator in $(head -1 "$indir/$list") of file $list" >&2; sleep 2
+				echo "unknown separator in $(head -1 "$list") of file $list" >&2; sleep 2
 				exit 1
 			fi
 		else
@@ -203,7 +212,7 @@ for list in $@
 	# make old list
 	mv $list $old
 	#### if NSP or NGP-based format: (i.e. there are at least two '$separator's)
-	if [ -n "$(grep -m1 $separator.*$separator $old)" ]; then
+	if [ -n "$(grep -m1 "$separator.*$separator" $old)" ] && [ -z "$googlebooksformat" ]; then
 		# if it is tab delimited
 		if [ -n "$(grep -m1 '	' $old)" ]; then
 			# if conversion to t2n format
@@ -287,10 +296,10 @@ for list in $@
 		# now we re-format the list
 		sed -e 's/ \([0-9]*\)$/ 	\1/g' -e "s/ /$outsep/g" < $old > $list
 	### if Google Books formatted: ####
-	elif [ -n "$(egrep -m1 '	[0-9][0-9][0-9]+	[0-9]+	[0-9]+	*[0-9]*$' $old)" ]; then
+	elif [ -n "$(egrep -m1 '	[0-9][0-9][0-9][0-9]	[0-9]+	[0-9]+	[0-9]+$' $old)" ] && [ "$separator" == " " ]; then
 		# select first and 3rd tab-separated field, replace spaces with $outsep
 		# insert $outsep before tab
-		cut -f 1,3 $old | sed -e "s/ /$outsep/g" -e "s/	/$outsep	/g" > $list
+		cut -f 1,3,5 $old | sed -e "s/ /$outsep/g" -e "s/	/$outsep	/" > $list
 	# if not in a known format:
 	else
 		mv $old $list

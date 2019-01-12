@@ -52,14 +52,14 @@ from __future__ import print_function
 from __future__ import unicode_literals
 from __future__ import absolute_import
 
-from libs import util
-from libs import filetype
+from mwetk import util
+from mwetk import filetype
 import logging
 import sys
      
 ################################################################################     
 # GLOBALS     
-version = "version: 1.0"
+version = "version: 1.1"
 usage_string = """\
 Usage: {progname} [OPTIONS] <input-file>
 Performs frequency consolidation on MWE candidates in an input file.

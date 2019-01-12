@@ -1,3 +1,13 @@
+release notes v. 1.1
+********************
+
+install.sh & substring-A.py
+- changed name of libraries folder from 'libs' to 'mwetk' in line with changes in the latest version of the mwetoolkit
+
+cutoff.sh
+- added option that allows processing of file in Google n-gram format
+
+
 release notes v. 1.0
 ********************
 
