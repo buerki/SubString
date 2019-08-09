@@ -1,3 +1,13 @@
+release notes v. 1.1.1
+**********************
+
+substring.sh
+- fixed an issues with a failure to copy consolidated list to output directory when path contains spaces
+
+substring-B.sh
+- fixed an issue that stopped correct processing of lists if no bigram list was available. 3-gram list is still required.
+
+
 release notes v. 1.1
 ********************
 

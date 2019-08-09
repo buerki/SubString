@@ -4,7 +4,7 @@ export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:"$HOME/bin"" # needed for Cygwin
 # substring.sh 
 copyright="Copyright (c) 2016-18 Cardiff University, 2011-2014 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version="1.0"
+version="1.0.1"
 ####
 # DESCRRIPTION: this is an interactive wrapper script for the Substring package
 # SYNOPSIS: 	substring.sh [OPTIONS]
@@ -592,7 +592,7 @@ case $next in
 	;;
 esac
 next=
-######### consolidation (if not already consolidated with filter)
+######### consolidation if not already consolidated with filter
 if [ -z "$filter" ]; then
 	echo
 	echo "Consolidating output file..."
@@ -601,11 +601,12 @@ if [ -z "$filter" ]; then
 fi
 ######### moving files into place and tidying up
 # producing nice name for output file and adding windows returns if necessary
-add_to_name $indir/$(ls *.txt)
+add_to_name "$indir/$(ls *.txt)"
 if [ "$(grep 'CYGWIN' <<< $platform)" ]; then
 	add_windows_returns $(ls *.txt) > "$output_filename"
 else
 	mv *.txt "$output_filename"
+	echo "consolidated list placed in $output_filename"
 fi
 echo "          Task complete. Your output files are found here:"
 echo "          $indir"

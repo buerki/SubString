@@ -3,7 +3,7 @@
 # substring-B.sh 
 copyright="Copyright (c) 2016-18 Cardiff University, 2011-2014 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version="1.0"
+version="1.0.1"
 ####
 # DESCRRIPTION: performs frequency consolidation among different length n-grams
 #				for options see -h
@@ -674,13 +674,18 @@ fi
 if [ "$verbose" ]; then
 	echo "checking whether n of n-gram lists are consecutive"
 fi
-# depending on whether a 1-gram list exists, set n to correct number
+# depending on whether a 1-gram list or 2-gram list exists, set n to correct number
 if [ -e $SCRATCHDIR/1.lst ]; then
 	n=$number_of_lists
-else
+	min=2
+elif [ -e $SCRATCHDIR/2.lst ]; then
 	n=$(( $number_of_lists + 1 ))
+	min=2
+else
+	n=$(( $number_of_lists + 2 ))
+	min=3
 fi
-while [ $n -gt 1 ]; do
+while [ $n -gt $min ]; do
 	if [ -s $SCRATCHDIR/$n.lst ]; then
 		if [ "$verbose" ]; then
 			echo -n "$n "
@@ -731,7 +736,7 @@ else
 	fi
 # check version of bash in use
 if [ -z "$force_bash3" ]; then
-	if [ "$(grep '^4' <<< $BASH_VERSION)" ]; then
+	if [ "$(grep '^4' <<< $BASH_VERSION)" ] || [ "$(grep '^5' <<< $BASH_VERSION)" ] ; then
 		bash_v4=true
 	else
 		echo "Warning: $(basename $0) is running under bash version $BASH_VERSION. If possible, upgrade bash on your system to version 4.3 or later." >&2
@@ -803,7 +808,7 @@ else
 	n=$(( $number_of_lists + 1 ))
 fi
 previous_list_empty=true
-for number in $(eval echo {$n..2});do
+for number in $(eval echo {$n..$min});do
 	if [ -s $SCRATCHDIR/$number.lst ]; then
 		previous_list_empty=false
 	elif [ "$previous_list_empty" == true ]; then
