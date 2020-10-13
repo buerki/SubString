@@ -736,7 +736,9 @@ else
 	fi
 # check version of bash in use
 if [ -z "$force_bash3" ]; then
-	if [ "$(grep '^4' <<< $BASH_VERSION)" ] || [ "$(grep '^5' <<< $BASH_VERSION)" ] ; then
+	BASH_V="$(bash --version | egrep -o "version [45]" | cut -d ' ' -f 2)"
+	if [ $BASH_V -gt 2 ]; then
+	#if [ "$(grep '^4' <<< $BASH_VERSION)" ] || [ "$(grep '^5' <<< $BASH_VERSION)" ] ; then
 		bash_v4=true
 	else
 		echo "Warning: $(basename $0) is running under bash version $BASH_VERSION. If possible, upgrade bash on your system to version 4.3 or later." >&2

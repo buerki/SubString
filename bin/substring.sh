@@ -4,7 +4,7 @@ export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:"$HOME/bin"" # needed for Cygwin
 # substring.sh 
 copyright="Copyright (c) 2016-18 Cardiff University, 2011-2014 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version="1.0.1"
+version="1.1.2"
 ####
 # DESCRRIPTION: this is an interactive wrapper script for the Substring package
 # SYNOPSIS: 	substring.sh [OPTIONS]
@@ -441,7 +441,7 @@ process_substring_reduction ( ) {
 # check lists are right
 echo
 echo "          Please confirm that ALL of the following are to be consolidated with each other:"
-echo "$(ls "$indir" | sed 's/^/                 /g')"
+echo "$(ls "$indir" | sort -n | sed 's/^/                 /g')"
 echo
 echo "          (C) confirm       (N) choose new folder       (X) exit"
 read -p '         > ' conf  < /dev/tty
@@ -461,23 +461,28 @@ indir_check
 # check if input lists exist, check separator used and move to SCRATCHDIR
 for list in $(ls "$indir"); do
 	if [ -e "$indir/$list" ]; then
-		# check separator for current list
-		if [ "$(head -1 "$indir/$list" | grep '<>')" ]; then
-			separator='<>'
-			short_sep='<'
-		elif [ "$(head -1 "$indir/$list" | grep '·')" ]; then
-			separator="·"
-			short_sep="·"
-		elif [ "$(head -2 "$indir/$list" | grep '<>')" ]; then
+		if [ -s "$indir/$list" ]; then
+			# check separator for current list
+			if [ "$(head -1 "$indir/$list" | grep '<>')" ]; then
 				separator='<>'
 				short_sep='<'
-				eliminate_first_line=true
-		elif [ "$(head -2 "$indir/$list" | grep '·')" ]; then
+			elif [ "$(head -1 "$indir/$list" | grep '·')" ]; then
 				separator="·"
 				short_sep="·"
-				eliminate_first_line=true
+			elif [ "$(head -2 "$indir/$list" | grep '<>')" ]; then
+					separator='<>'
+					short_sep='<'
+					eliminate_first_line=true
+			elif [ "$(head -2 "$indir/$list" | grep '·')" ]; then
+					separator="·"
+					short_sep="·"
+					eliminate_first_line=true
+			else
+				echo "unknown separator in $(head -1 "$indir/$list") of file $list" >&2; sleep 2
+				exit 1
+			fi
 		else
-			echo "unknown separator in $(head -1 "$indir/$list") of file $list" >&2; sleep 2
+			echo "ERROR: $indir/$list is empty after minimum cutoff." >&2; sleep 2
 			exit 1
 		fi
 	else
@@ -493,7 +498,7 @@ cd - > /dev/null
 echo
 echo "checking lists..."
 number_of_lists=$(ls $SCRATCHDIR | wc -w | sed 's/ //g'); echo "number of lists: $number_of_lists"
-shortest_list=$(ls $SCRATCHDIR | head -1 | sed 's/.lst//g'); echo "shortest list: $shortest_list-grams"
+shortest_list=$(ls $SCRATCHDIR | sort -n | head -1 | sed 's/.lst//g'); echo "shortest list: $shortest_list-grams"
 longest_list=$(( $shortest_list + $number_of_lists - 1 )); echo -n "longest list should be: $longest_list-grams..."
 i="$shortest_list"
 while [ $i -le $longest_list ]; do
@@ -544,7 +549,11 @@ fi
 echo
 echo "starting substring reduction and frequency consolidation..."
 echo
-substring-B.sh -dv $(for list in 4 5 6 7 8 9; do if [ -e uncut/$list.lst ]; then echo -n "-u uncut/$list.lst ";fi;done) $(for list in $(ls cut); do echo -n "cut/$list ";done) || exit 1
+if [ -e uncut/31.lst ]; then
+	echo "ERROR: SubString is not designed to consolidate n-grams with n > 30."
+	exit 0
+fi
+substring-B.sh -dv $(for list in 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do if [ -e uncut/$list.lst ]; then echo -n "-u uncut/$list.lst ";fi;done) $(for list in $(ls cut); do echo -n "cut/$list ";done) || exit 1
 mv neg_freq.lst "$indir/neg_freq.txt" 2> /dev/null
 # ascertain filename of consolidated list
 filename=$(ls *substrd)

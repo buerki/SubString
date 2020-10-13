@@ -4,8 +4,9 @@
 copyright="Copyright (c) 2016 Cardiff University, 2015 Andreas Buerki"
 # licensed under the EUPL V.1.1.
 ####
-version="1.5.3"
+version="1.5.5"
 # DESCRRIPTION: lexico-structural filter for English language data
+###########
 # define help function
 help ( ) {
 	echo "
@@ -118,9 +119,15 @@ fi
 for files in $@
 	do
 		ext="$(egrep -o '\.[[:alnum:]]+$' <<<"$files")"
-		files_woext="$(sed "s/$ext//" <<< "$files")"
-		add_to_name $files_woext.$version.enfltd$ext
+		if [ -z "$ext" ]; then
+			files_woext="$files"
+		else
+			files_woext="$(sed "s/$ext//" <<< "$files")"
+		fi
+		add_to_name "$files_woext.$version.enfltd$ext"
 		outfile="$output_filename"
+		# filter out problem characters
+		tr '*' '★' < $files | tr '\"' '˝' | tr '+' '⊕' |\
 ##############################################################################
 # filter part 1
 sed -E -e 's/NE·NE/NE/g' \
@@ -144,7 +151,7 @@ sed -E -e 's/NE·NE/NE/g' \
 -e "/\(·[^\)]*	/s/\(·//g" \
 -e "s/^\)·//g" \
 -e "/^[^\(]*\)/s/\)·//g" \
--e "s/\(·	//g" $files > $SCRATCHDIR/$outfile
+-e "s/\(·	//g" > $SCRATCHDIR/$outfile
 # filter parts 2 and 3
 egrep -v "(\
 E9E9E9|\
@@ -225,7 +232,7 @@ egrep -v "(\
 ·have·	|\
 ·is·	|\
 ·was·	|\
-^had·)" > $outfile
+^had·)" | tr '★' '*' | tr '˝' '"' | tr '⊕' '+' > $outfile
 consolidate.sh -r $doc $verb $outfile
 if [ "$(grep 'CYGWIN' <<< $platform)" ]; then
 	add_windows_returns "$outfile" > "$outfile."

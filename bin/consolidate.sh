@@ -2,9 +2,9 @@
 
 ##############################################################################
 # consolidate.sh
-copyright="Copyright (c) 2016 Cardiff University, 2014 Andreas Buerki"
+copyright="Copyright (c) 2016, 2019 Cardiff University, 2014 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version='0.9.9'
+version='0.9.9.1'
 ####
 # DESCRRIPTION: this script consolidates lists with duplicate n-grams (which may
 #               have different frequencies) by adding their frequencies into a
@@ -251,7 +251,7 @@ for list in $@; do
 
 	# now tidy (in case freqs are not yet separated from n-grams), 
 	# sort list and put into memory
-	copied_list="$(sed -e 's/\./DOT/g' -e 's/-/HYPH/g' -e 's/(/LBRACKET/g' -e 's/)/RBRACKET/g' -e "s/$separator\([0-9]*\)  /$separator	\1	/g" -e "s/$separator\([0-9]*\) $/$separator	\1/g" -e 's/ $//g' -e 's/	/./g' $list | grep -v '^[0-9]*$' | eval $korean sort)"
+	copied_list="$(sed -e 's/\./DOT/g' -e 's/-/HYPH/g' -e 's/(/LBRACKET/g' -e 's/)/RBRACKET/g' -e 's/\*/ASTERISC/g' -e 's/^\+/PLUS/g' -e "s/$separator\([0-9]*\)  /$separator	\1	/g" -e "s/$separator\([0-9]*\) $/$separator	\1/g" -e 's/ $//g' -e 's/	/./g' $list | grep -v '^[0-9]*$' | eval $korean sort)"
 	
 	# check for instances of duplication and put lines (w/o freq) into variable
 	duplicates=$(echo $copied_list | tr ' ' '\n' | cut -d '.' -f 1 | uniq -d | tee $SCRATCHDIR/d)

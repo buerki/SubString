@@ -1,3 +1,10 @@
+release notes v. 1.1.2
+**********************
+
+substring.sh
+- enabled the consolidation of n-grams of lengths up to n = 30.
+
+
 release notes v. 1.1.1
 **********************
 
