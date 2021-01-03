@@ -4,7 +4,7 @@ export PATH="$PATH:/usr/local/bin:/usr/bin:/bin:"$HOME/bin"" # needed for Cygwin
 # substring.sh 
 copyright="Copyright (c) 2016-18 Cardiff University, 2011-2014 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version="1.1.2"
+version="1.2"
 ####
 # DESCRRIPTION: this is an interactive wrapper script for the Substring package
 # SYNOPSIS: 	substring.sh [OPTIONS]
@@ -553,7 +553,7 @@ if [ -e uncut/31.lst ]; then
 	echo "ERROR: SubString is not designed to consolidate n-grams with n > 30."
 	exit 0
 fi
-substring-B.sh -dv $(for list in 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do if [ -e uncut/$list.lst ]; then echo -n "-u uncut/$list.lst ";fi;done) $(for list in $(ls cut); do echo -n "cut/$list ";done) || exit 1
+substring-B.sh -dv $(for list in 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30; do if [ -e uncut/$list.lst ]; then echo -n "-u uncut/$list.lst ";fi;done) $(for list in $(ls cut | sort -n); do echo -n "cut/$list ";done) || exit 1
 mv neg_freq.lst "$indir/neg_freq.txt" 2> /dev/null
 # ascertain filename of consolidated list
 filename=$(ls *substrd)

@@ -1,3 +1,10 @@
+release notes v. 1.2
+********************
+
+substring-B.sh
+- fixed an issue introduced in version 1.1.2, where the order of consolidation was mixed up for n-grams of n > 9.
+- extended limit of 12 uncut lists to 29 uncut lists.
+
 release notes v. 1.1.2
 **********************
 

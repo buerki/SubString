@@ -3,7 +3,7 @@
 # substring-B.sh 
 copyright="Copyright (c) 2016-18 Cardiff University, 2011-2014 Andreas Buerki"
 # licensed under the EUPL V.1.1.
-version="1.0.1"
+version="1.2"
 ####
 # DESCRRIPTION: performs frequency consolidation among different length n-grams
 #				for options see -h
@@ -48,6 +48,8 @@ version="1.0.1"
 # (0.9.9.1)
 # 24 Aug 2018	renamed script to substring-B.sh, to fit with new architecture of 
 # (1.0)			the whole SubString package
+# 03 Jan 2020	changed script to 
+# (1.2)
 #############################################
 # define help function
 #############################################
@@ -194,7 +196,7 @@ done
 #############################################
 prep_stage ( ) {
 # reading files into memory
-if [ "$bash_v4" ]; then
+if [ "$bash_v4orlater" ]; then
 	# make sure we're starting afresh
 	unset -v 'uncut_list' 'long_list'
 	short_list=
@@ -316,7 +318,7 @@ for line in $(cut -d '.' -f 1 <<< "$short_list"); do # line without freqs of fir
 				#fi
 				
 				# step 4
-				if [ "$bash_v4" ]; then
+				if [ "$bash_v4orlater" ]; then
 					if [ -z "${long_list["$superstring"]}" ]; then					
 					# if this superstring was not found in second cut list
 					# try to find it in the uncut list
@@ -345,7 +347,7 @@ if [ "$verbose" ]; then
 	echo ""
 fi
 # write to file and tidy up
-if [ "$bash_v4" ]; then
+if [ "$bash_v4orlater" ]; then
 for i in "${!long_list[@]}"; do echo "$i.${long_list[$i]}"; done > $2
 unset -v 'uncut_list' 'long_list'
 short_list=
@@ -492,8 +494,42 @@ do
 			uncut11=$OPTARG
 		elif [ $number_of_uncut_lists -eq 12 ]; then
 			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 13 ]; then
+			uncut13=$OPTARG
+		elif [ $number_of_uncut_lists -eq 14 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 15 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 16 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 17 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 18 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 19 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 20 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 21 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 22 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 23 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 24 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 25 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 26 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 27 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 28 ]; then
+			uncut12=$OPTARG
+		elif [ $number_of_uncut_lists -eq 29 ]; then
+			uncut12=$OPTARG
 		else
-			echo "no more than 12 uncut lists allowed" >&2
+			echo "no more than 29 uncut lists allowed" >&2
 			exit 1
 		fi
 		;;
@@ -736,12 +772,12 @@ else
 	fi
 # check version of bash in use
 if [ -z "$force_bash3" ]; then
-	BASH_V="$(bash --version | egrep -o "version [45]" | cut -d ' ' -f 2)"
+	BASH_V="$(bash --version | egrep -o "version [456789]" | cut -d ' ' -f 2)"
 	if [ $BASH_V -gt 2 ]; then
 	#if [ "$(grep '^4' <<< $BASH_VERSION)" ] || [ "$(grep '^5' <<< $BASH_VERSION)" ] ; then
-		bash_v4=true
+		bash_v4orlater=true
 	else
-		echo "Warning: $(basename $0) is running under bash version $BASH_VERSION. If possible, upgrade bash on your system to version 4.3 or later." >&2
+		echo "WARNING: $(basename $0) is running under bash version $BASH_VERSION. If possible, upgrade bash on your system to version 4.3 or later. Support for bash $BASH_VERSION is not fully tested and might be discontinued in a future version of $(basename $0)." >&2
 	fi
 elif [ "$verbose" ]; then
 	echo "forcing processing with bash 3"
@@ -803,7 +839,7 @@ if [ $number_of_lists -ne "$(ls $SCRATCHDIR/*.lst | wc -l)" ]; then
 fi
 # check if we have empty lists and reduce the number of lists by the number
 # of empty lists found, making sure that the lists remain consecutive in
-# n-size (any applied 1-gram list was already checked)
+# n-size; any applied 1-gram list was already checked
 if [ -e $SCRATCHDIR/1.lst ]; then
 	n=$number_of_lists
 else
@@ -824,7 +860,8 @@ for number in $(eval echo {$n..$min});do
 done
 # name n-gram lists with the 'argN' variable
 current=1 # create count variable for naming
-for ii in $(ls $SCRATCHDIR/*.lst); do
+for ii in $(ls $SCRATCHDIR/*.lst | sort -V); do  # employing version sort to get numeric sort
+	#echo "CHECK: $ii"
 	if [ -s $ii ]; then # if they are non empty
 		eval arg$current=$ii # create variable with the name of the list
 		((current +=1))
@@ -837,13 +874,13 @@ if [ -z "$doc" ] && [ "$(head -1 $(eval echo \$arg$number_of_lists) | cut -d '.'
 	mv $(eval echo \$arg$number_of_lists).alt $(eval echo \$arg$number_of_lists)
 fi
 ####### start consolidation #######
-# report to user
-if [ "$verbose" ]; then
-	echo "$number_of_lists lists to consolidate"
-fi
 # initialise indices
 longlistindex="$number_of_lists"
 longlistminusindex=$(( $longlistindex - 1 ))
+# report to user
+if [ "$verbose" ]; then
+	echo "$number_of_lists lists to consolidate, longest list is $(basename $(eval echo \$arg$longlistindex))."
+fi
 # start loops
 until [ 1 -gt $longlistminusindex ]
 do
